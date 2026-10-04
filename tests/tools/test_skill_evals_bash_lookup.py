@@ -87,7 +87,8 @@ def test_bash_hong_dau_path_thi_thu_bash_ke_tiep_tren_path(tmp_path: Path, monke
     assert REAL_BASH is not None
     _fake_wsl_first_on_path(tmp_path, monkeypatch, str(Path(REAL_BASH).parent))
     monkeypatch.setattr(se, "GIT_BASH", str(tmp_path / "khong-co" / "bash.exe"))
-    assert se.find_bash() == REAL_BASH
+    # `shutil.which` trên Windows ghép đuôi theo PATHEXT (`bash.EXE`) nên so như đường dẫn, không như chuỗi.
+    assert os.path.normcase(se.find_bash()) == os.path.normcase(REAL_BASH)
 
 
 def test_khong_co_bash_chay_duoc_thi_bao_loi_ro_rang(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
