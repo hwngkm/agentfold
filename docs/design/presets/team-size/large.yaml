@@ -1,0 +1,31 @@
+# Preset team-size: large — 6+ người, tách vận hành/phát hành khỏi backend, thêm vai trò bảo mật.
+name: large
+label: Large (6+ người)
+description: >-
+  Tách OPS (CI/deploy/bí mật) và RELEASE (tài liệu phát hành) khỏi backend/frontend thành một vai trò
+  riêng; thêm vai trò bảo mật đồng duyệt các đường chạm agent/bí mật.
+roles:
+  - id: R1
+    title: Tech Lead · Architecture Owner · điều phối
+    backup: R3
+  - id: R2
+    title: Domain & Data Owner · đánh giá
+    backup: R1
+  - id: R3
+    title: Backend Engineer
+    backup: R5
+  - id: R4
+    title: Frontend Engineer
+    backup: R5
+  - id: R5
+    title: Backend Ops & Release Engineering
+    backup: R3
+  - id: R6
+    title: Security & Compliance
+    backup: R1
+category_owner: { ARCH: R1, DOMAIN: R2, BACKEND: R3, OPS: R5, FRONTEND: R4, RELEASE: R5, SECURITY: R6 }
+review:
+  self_merge_allowed: false
+notes: >-
+  SECURITY là lớp đồng duyệt THÊM, không thay chủ sở hữu gốc: file bảo mật (`docs/rules/60-agent-security.md`,
+  `src/llm/safety.py`, `src/agents/actions.py`) vẫn có chủ theo ARCH/BACKEND, cộng thêm bắt buộc R6 duyệt.

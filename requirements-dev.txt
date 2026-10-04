@@ -1,0 +1,13 @@
+-r requirements.txt
+
+# GHIM CHÍNH XÁC công cụ định dạng/kiểm tĩnh. Để `>=` thì mỗi lần công cụ ra bản mới, CI cả đội đỏ vì
+# lý do không liên quan code vừa sửa (đã gặp: `ruff format --check` lệch 1 → 3 → 9 file mà không ai
+# đổi code). Nâng bản = một PR riêng trong làn `python-deps`.
+ruff==0.16.0
+mypy==2.3.0
+
+pytest>=8.3,<10
+httpx>=0.28,<1
+# agentctl (điều phối agent) đọc ticket và policy dạng YAML.
+pyyaml>=6.0,<7
+types-PyYAML>=6.0,<7

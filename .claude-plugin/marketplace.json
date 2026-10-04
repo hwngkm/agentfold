@@ -1,0 +1,88 @@
+{
+  "name": "agentfold",
+  "description": "Kỹ năng cho dự án AI agent: bộ lõi và các pack theo loại việc (backend, dữ liệu, kiểm thử, hạ tầng…).",
+  "owner": {
+    "name": "hwngkm"
+  },
+  "plugins": [
+    {
+      "name": "core",
+      "source": ".",
+      "description": "Bộ lõi của template: lưới canh, sơ đồ, ADR, vòng đời ticket, đa agent, sửa lỗi, thẩm định ý tưởng.",
+      "skills": [
+        "./.claude/skills/guard-net",
+        "./.claude/skills/diagram",
+        "./.claude/skills/adr",
+        "./.claude/skills/ticket-flow",
+        "./.claude/skills/multi-agent",
+        "./.claude/skills/bug-fix",
+        "./.claude/skills/idea-assessment"
+      ]
+    },
+    {
+      "name": "backend",
+      "source": "./packs/backend",
+      "description": "Backend / API — skill: api-contract, db-migration, observability."
+    },
+    {
+      "name": "product-design",
+      "source": "./packs/product-design",
+      "description": "Thiết kế sản phẩm (sơ đồ, bảng cấu trúc, bản mẫu) — skill: diagram-roadmap, data-model, design-tables, figma-prototype."
+    },
+    {
+      "name": "frontend",
+      "source": "./packs/frontend",
+      "description": "Frontend / UI — skill: ui-component, design-system, ux-prototype."
+    },
+    {
+      "name": "data",
+      "source": "./packs/data",
+      "description": "Dữ liệu — skill: data-ingest, data-quality, sql-perf."
+    },
+    {
+      "name": "testing",
+      "source": "./packs/testing",
+      "description": "Kiểm thử — skill: test-strategy, tdd-loop, e2e-browser, flaky-tests."
+    },
+    {
+      "name": "ai-llm",
+      "source": "./packs/ai-llm",
+      "description": "Ứng dụng LLM — skill: prompt-io, rag, eval-harness, token-economics, latency-slo."
+    },
+    {
+      "name": "ai-product",
+      "source": "./packs/ai-product",
+      "description": "Sản phẩm AI hoàn chỉnh (agent, công cụ, phát hành) — skill: agent-architecture, tool-design, mcp-server, human-in-the-loop, ai-release."
+    },
+    {
+      "name": "research",
+      "source": "./packs/research",
+      "description": "Nghiên cứu — skill: literature-review, experiment-design, research-notes, paper-search, repo-research, model-hub-research."
+    },
+    {
+      "name": "ml-dl",
+      "source": "./packs/ml-dl",
+      "description": "Huấn luyện ML/DL — skill: experiment-tracking, train-eval, finetune, benchmark."
+    },
+    {
+      "name": "ops",
+      "source": "./packs/ops",
+      "description": "CI/CD và vận hành — skill: ci-pipeline, deploy-gate, deploy-targets, incident, cost-guard."
+    },
+    {
+      "name": "infra",
+      "source": "./packs/infra",
+      "description": "Hạ tầng — skill: container-image, compose-stack, iac, secrets-env, container-isolation."
+    },
+    {
+      "name": "review-audit",
+      "source": "./packs/review-audit",
+      "description": "Kiểm định và phản biện (audit, bảo mật, tranh luận) — skill: project-audit, security-audit, critical-debate."
+    },
+    {
+      "name": "market",
+      "source": "./packs/market",
+      "description": "Nghiên cứu thị trường — skill: market-research, competitor-analysis."
+    }
+  ]
+}

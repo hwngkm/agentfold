@@ -1,0 +1,15 @@
+# Xuống dòng thống nhất giữa agent chạy Windows, macOS, Linux — diff không bị nhiễu toàn file.
+* text=auto eol=lf
+
+# Script cmd.exe cần CRLF
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Hook git và shell script PHẢI là LF, nếu không bash trên Linux/macOS báo "bad interpreter"
+*.sh text eol=lf
+scripts/githooks/* text eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary

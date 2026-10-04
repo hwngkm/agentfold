@@ -1,0 +1,21 @@
+# Preset team-size: standard — 4 người, mặc định của template.
+name: standard
+label: Standard (4 người)
+description: Mặc định của template. Bốn vai trò, mỗi vai trò một người, khớp mô hình đội nhiều vai trò điển hình.
+roles:
+  - id: R1
+    title: Tech Lead · Architecture Owner · điều phối
+    backup: R3
+  - id: R2
+    title: Domain & Data Owner · đánh giá
+    backup: R1
+  - id: R3
+    title: Backend & DevOps
+    backup: R1
+  - id: R4
+    title: Frontend & Delivery
+    backup: R3
+category_owner: { ARCH: R1, DOMAIN: R2, BACKEND: R3, OPS: R3, FRONTEND: R4, RELEASE: R4 }
+review:
+  self_merge_allowed: false
+notes: ""

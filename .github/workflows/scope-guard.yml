@@ -1,0 +1,66 @@
+# scope-guard — PR chỉ được đổi thứ ticket của nó đã được duyệt cho phép.
+#
+# 🔒 Bên bị kiểm không cầm bộ kiểm: công cụ `tools/agentctl` và `coordination/policy.yaml` được lấy từ commit
+#    GỐC của PR (worktree ở runner.temp), không từ nhánh PR. Một PR sửa `tools/agentctl/scope.py` để luôn xanh
+#    vẫn bị kiểm bằng bản cũ — và chính việc sửa đó bị đòi nhãn duyệt (vùng bảo vệ `coordination`).
+# 🔒 `pull_request`, KHÔNG `pull_request_target`: không cấp token ghi cho mã từ PR.
+# 🏷️ Chạy lại khi gắn/gỡ nhãn: người duyệt gắn `human-approved` thì check tự cập nhật.
+# Nhẹ (~1 phút), chạy cả trên PR nháp để agent thấy vi phạm sớm. Không thuộc nhóm check gác deploy.
+# Khoá bởi tests/guards/test_scope_guard_workflow.py.
+name: scope-guard
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scope-guard-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  scope-guard:
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Cài công cụ điều phối
+        run: python -m pip install --no-cache-dir "pyyaml>=6,<7"
+      - name: Lấy công cụ từ commit gốc
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          # Runner tự host có thể còn đăng ký worktree của lần chạy trước (thư mục _temp đã bị dọn).
+          git worktree remove --force "$RUNNER_TEMP/base" 2>/dev/null || true
+          rm -rf "$RUNNER_TEMP/base"
+          git worktree prune
+          git worktree add --force --detach "$RUNNER_TEMP/base" "$BASE_SHA"
+      - name: Kiểm phạm vi bằng công cụ của commit gốc
+        working-directory: ${{ runner.temp }}/base
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: |
+          if [ ! -d tools/agentctl ]; then
+            echo "Commit gốc chưa có tools/agentctl (lần khởi tạo template) — bỏ qua, lần sau sẽ kiểm."
+            exit 0
+          fi
+          python -m tools.agentctl --repo "$GITHUB_WORKSPACE" check-scope \
+            --base "$BASE_SHA" --head "$HEAD_SHA" --branch "$HEAD_REF" \
+            --labels "$PR_LABELS" --require-claim
+      - name: Dọn worktree gốc
+        if: always()
+        run: |
+          git worktree remove --force "$RUNNER_TEMP/base" || true
+          git worktree prune

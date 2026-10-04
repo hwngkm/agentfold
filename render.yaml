@@ -1,0 +1,33 @@
+# Render Blueprint cho backend.
+# 🔒 `autoDeployTrigger: checksPass` — chỉ deploy khi MỌI check CI trên commit qua. Mặc định `commit` deploy ngay
+#    mỗi lần đẩy: đã từng có dự án đưa lên production một commit có test cổng duyệt ĐỎ.
+# ⚠️ Trường này chỉ áp cho dịch vụ MỚI dựng từ Blueprint. Dịch vụ đã có: bật tay ở Dashboard → Settings →
+#    Auto-Deploy → "After CI Checks Pass". Khoá bởi tests/guards/test_deploy_waits_for_ci.py.
+services:
+  - type: web
+    name: agentfold
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: APP_ENV
+        value: production
+      # `sync: false` = giá trị KHÔNG BAO GIỜ nằm trong git, đặt tay trên dashboard.
+      - key: DATABASE_URL
+        sync: false
+      # Thiếu biến này thì cổng production chặn khởi động (không âm thầm dùng khoá mặc định).
+      # Sinh: python -c "import secrets; print(secrets.token_urlsafe(48))"
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: CORS_ORIGIN_REGEX
+        sync: false
+      - key: LLM_PROVIDER
+        value: offline
+      - key: LLM_MODEL
+        sync: false
+      - key: LLM_API_KEY
+        sync: false

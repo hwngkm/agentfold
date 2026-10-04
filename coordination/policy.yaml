@@ -1,0 +1,132 @@
+# Chính sách điều phối — nguồn sự thật cho vùng bảo vệ, làn độc quyền và mục luôn được phép.
+# Đọc bởi: `python -m tools.agentctl` (claim, check-scope), hook ghi file của agent, pre-commit, CI.
+#
+# 🔒 Khi phân xử, file này được đọc từ NHÁNH GỐC (origin/main), không từ nhánh đang làm. Sửa nó trong
+#    một PR tính năng KHÔNG có hiệu lực cho chính PR đó — bên bị kiểm không cầm bộ kiểm.
+# ⚠️ Mẫu bắt đầu bằng `*` phải đặt trong ngoặc kép (`- "**/*.md"`): `*` đầu giá trị là cú pháp alias YAML.
+# 📐 Ngôn ngữ mẫu: `**` = mọi thứ kể cả `/`; `*` = không chứa `/`; kết thúc bằng `/` = cả thư mục.
+version: 1
+
+remote: origin
+base_branch: main
+claims_branch: agent-claims        # nhánh mồ côi chứa sổ claim — không deploy, không chạy CI
+mail_branch: agent-mail            # nhánh mồ côi chứa hộp thư + nhật ký AGENT-LOG (docs/AGENT-LOG.md) — như trên
+tickets_dir: docs/work/tickets
+human_approval_label: human-approved
+
+lease:
+  default_hours: 24                # agent dừng giữa chừng thì phạm vi tự nhả sau ngần này giờ
+  max_hours: 72
+
+# Mỗi mục là một file riêng tên duy nhất ⇒ hai agent ghi cùng lúc không bao giờ đụng nhau.
+always_allowed:
+  - docs/work/log/**
+  - docs/work/decisions/**
+  - docs/work/questions/**
+  - docs/work/incidents/**
+  - docs/work/handoffs/**
+  - docs/work/bugs/**
+  - docs/work/assessments/**
+
+# Vùng do CON NGƯỜI sở hữu. Sửa được khi: (a) PR có nhãn duyệt, hoặc (b) ticket đã duyệt liệt kê id vùng
+# trong `scope.protected`, hoặc (c) vùng cho `allow_additions` và thay đổi là THÊM file mới.
+# Cột `owners:` được SINH RA từ docs/design/team-profile.yaml (`python scripts/generate_team_docs.py`)
+# theo marker `# OWNER:<hạng mục>` cuối dòng — sửa tay sẽ bị ghi đè ở lần sinh kế tiếp và lưới canh đỏ
+# nếu lệch profile ngay bây giờ. Sửa AI chịu trách nhiệm vùng nào thì sửa profile, không sửa ở đây.
+protected:
+  - id: constitution
+    owners: [R1]  # OWNER:ARCH
+    why: Bộ luật mọi AI agent tự đọc ở mỗi phiên. Sửa lặng lẽ ở đây là đổi luật cho cả đội và mọi nhà cung cấp.
+    paths:
+      - AGENTS.md
+      - CLAUDE.md
+      - GEMINI.md
+      - web/AGENTS.md
+      - web/CLAUDE.md
+      - .github/copilot-instructions.md
+      - .cursor/
+      - .aider.conf.yml
+      - .claude/
+      - .gemini/
+      - .codex/
+
+  - id: design
+    owners: [R1]  # OWNER:ARCH
+    why: Thiết kế, bất biến và ranh giới lớp do con người thống nhất. Agent đề xuất bằng ADR, không tự sửa.
+    paths:
+      - docs/design/
+      - contracts/boundaries.yaml
+
+  - id: rules
+    owners: [R1]  # OWNER:ARCH
+    why: Quy tắc kỹ thuật và quản trị của đội.
+    paths:
+      - docs/rules/
+      - docs/GOVERNANCE.md
+
+  - id: coordination
+    owners: [R1]  # OWNER:ARCH
+    why: Chính sách và công cụ điều phối. Bên bị kiểm không được sửa bộ kiểm trong cùng PR.
+    paths:
+      - coordination/
+      - tools/
+      - scripts/githooks/
+      - scripts/hooks/
+
+  - id: work-plan
+    owners: [R1]  # OWNER:ARCH
+    allow_additions: true
+    why: Ticket và kế hoạch là thứ người duyệt. Thêm đề xuất mới thì được; đổi phạm vi, trạng thái hay tự duyệt kế hoạch phải có người duyệt.
+    paths:
+      - docs/work/tickets/
+      - docs/work/plans/
+
+  - id: guard-nets
+    owners: [R1]  # OWNER:ARCH
+    allow_additions: true
+    why: Lưới canh là thiết kế dạng chạy được. Thêm lưới mới thì được; nới hay xoá lưới cũ phải có người duyệt.
+    paths:
+      - tests/guards/
+
+  - id: delivery
+    owners: [R1]  # OWNER:OPS
+    why: CI và deploy là chốt chặn cuối. Đổi chúng là đổi cổng an toàn của cả hệ thống.
+    paths:
+      - .github/workflows/
+      - .github/CODEOWNERS
+      - .github/pull_request_template.md
+      - render.yaml
+      - Dockerfile
+      - docker-compose.yml
+      - web/vercel.json
+
+# Tài nguyên chỉ MỘT ticket được giữ tại một thời điểm. Ticket khai bằng tên trong `scope.exclusive`;
+# không được liệt kê thẳng đường dẫn của làn trong `scope.allow`.
+exclusive:
+  - id: db-migrations
+    why: Hai nhánh cùng thêm migration sinh nhiều head Alembic (từng phải viết hàng chục revision chỉ để gộp head).
+    paths:
+      - alembic/versions/
+
+  - id: python-deps
+    why: File phụ thuộc và cấu hình công cụ đổi song song thì xung đột, và làm CI của nhau đỏ.
+    paths:
+      - requirements.txt
+      - requirements-dev.txt
+      - pyproject.toml
+
+  - id: web-deps
+    why: Lockfile hầu như không merge tay được.
+    paths:
+      - web/package.json
+      - web/package-lock.json
+
+  - id: api-contract
+    why: Hợp đồng API là thứ backend và frontend cùng dựa vào; hai thay đổi song song không kiểm được với nhau.
+    paths:
+      - contracts/openapi.json
+
+  - id: web-api-core
+    why: Lớp gọi HTTP dùng chung của frontend — mọi màn hình phụ thuộc nó.
+    paths:
+      - web/src/lib/api/http.ts

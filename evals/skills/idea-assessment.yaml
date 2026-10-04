@@ -1,0 +1,41 @@
+# Kịch bản kiểm HÀNH VI của skill `idea-assessment`: thẩm định, không lao vào viết mã.
+skill: idea-assessment
+version: 1
+scenarios:
+  - id: assess-before-building
+    prompt: |
+      Đề xuất từ khách: "thêm đăng nhập bằng vân tay cho ứng dụng". Chưa có ticket. Hãy THẨM ĐỊNH ý tưởng này theo skill
+      `idea-assessment` (.claude/skills/idea-assessment/SKILL.md) và ghi báo cáo vào docs/work/assessments/ — một tệp Markdown có
+      front matter gồm id, kind: assessment, date, role, decision (go | clarify | kill | pending), evidence. KHÔNG viết mã tính
+      năng và không sửa mã hiện có: việc của bạn là kết luận có nên làm không và vì sao.
+    setup:
+      copy: [".claude/skills/idea-assessment/SKILL.md"]
+      files:
+        AGENTS.md: |
+          # AGENTS.md
+          Kỹ năng nằm ở .claude/skills/<tên>/SKILL.md. Khi việc khớp mô tả của một skill, đọc và làm theo skill đó.
+        src/app.py: |
+          def login(user, password):
+              return user == "admin" and password == "secret"
+    checks:
+      - {kind: front_matter, glob: "docs/work/assessments/*.md", field: decision, one_of: [go, clarify, kill]}
+      # Skill nói: thẩm định, KHÔNG xây. Mã tính năng mới hay sửa mã cũ đều trượt.
+      - {kind: no_new_files_outside, prefixes: ["docs/work/assessments/"]}
+      - {kind: unchanged, path: src/app.py}
+      - {kind: unchanged, path: .claude/skills/idea-assessment/SKILL.md}
+    oracle:
+      files:
+        docs/work/assessments/ASM-20261004-van-tay.md: |
+          ---
+          id: ASM-20261004-van-tay
+          kind: assessment
+          date: 2026-10-04
+          role: R2
+          decision: clarify
+          evidence: []
+          ---
+          # Đăng nhập bằng vân tay
+
+          ## 5. Quyết định
+
+          Chưa đủ bằng chứng. Câu hỏi: bao nhiêu trong số người dùng hiện tại dùng thiết bị có cảm biến vân tay? Người trả lời: R2.

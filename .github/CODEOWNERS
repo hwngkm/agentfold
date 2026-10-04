@@ -1,0 +1,42 @@
+# CODEOWNERS — SINH RA từ docs/design/team-profile.yaml bằng `python scripts/generate_team_docs.py`.
+# Sửa ở đó, đừng sửa tay file này. Handle thật khai ở `github_handles` trong profile; chưa khai thì ra handle giữ chỗ (@rN-...) — GitHub bỏ qua.
+# Chỉ có hiệu lực chặn khi branch protection bật "Require review from Code Owners" — không có nó,
+# file này chỉ là gợi ý reviewer. Agent nên dùng tài khoản KHÔNG nằm trong file này.
+#
+# GitHub áp dụng pattern KHỚP CUỐI CÙNG trong file. Patterns dưới được sắp theo ĐỘ DÀI TĂNG DẦN
+# (không phải theo chủ đề) để một pattern hẹp (vd. /web/AGENTS.md) luôn đứng sau, và luôn thắng,
+# một pattern rộng hơn (vd. /web/) đứng trước nó — bất kể ai thêm mục mới vào giữa.
+
+*                                   @hwngkm
+
+/web/                                @hwngkm
+/tools/                              @hwngkm
+/.codex/                             @hwngkm
+/src/db/                             @hwngkm
+/src/llm/                            @hwngkm
+/.cursor/                            @hwngkm
+/.claude/                            @hwngkm
+/.gemini/                            @hwngkm
+/src/api/                            @hwngkm
+/alembic/                            @hwngkm
+/AGENTS.md                           @hwngkm
+/CLAUDE.md                           @hwngkm
+/GEMINI.md                           @hwngkm
+/Dockerfile                          @hwngkm
+/docs/rules/                         @hwngkm
+/src/agents/                         @hwngkm
+/src/domain/                         @hwngkm
+/render.yaml                         @hwngkm
+/docs/design/                        @hwngkm
+/coordination/                       @hwngkm
+/tests/guards/                       @hwngkm
+/web/AGENTS.md                       @hwngkm
+/scripts/hooks/                      @hwngkm
+/scripts/githooks/                   @hwngkm
+/docs/GOVERNANCE.md                  @hwngkm
+/docs/work/tickets/                  @hwngkm
+/.github/workflows/                  @hwngkm
+/docker-compose.yml                  @hwngkm
+/contracts/openapi.json              @hwngkm
+/contracts/boundaries.yaml           @hwngkm
+/.github/copilot-instructions.md     @hwngkm

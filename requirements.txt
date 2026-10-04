@@ -1,0 +1,11 @@
+# Phụ thuộc lúc CHẠY (đóng vào Docker image). Công cụ phát triển ở requirements-dev.txt.
+# Thêm phụ thuộc = làn độc quyền `python-deps` + lý do trong PR (docs/rules/20-backend.md).
+fastapi>=0.115,<1
+uvicorn[standard]>=0.34,<1
+pydantic>=2.10,<3
+pydantic-settings>=2.7,<3
+sqlalchemy>=2.0,<3
+alembic>=1.16,<2
+# Driver PostgreSQL cho production; SQLite dùng sqlite3 có sẵn của Python.
+psycopg2-binary>=2.9,<3
+pyjwt>=2.10,<3

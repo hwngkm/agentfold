@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Lớp cưỡng chế CHUNG: mọi agent (mọi nhà cung cấp) và mọi người đều commit qua git.
+# Cài một lần mỗi bản clone (worktree dùng chung cấu hình):  git config core.hooksPath scripts/githooks
+# Cùng hàm với CI (`tools.agentctl.scope.evaluate`), nên xanh ở đây ⇒ scope-guard trên CI cũng xanh,
+# trừ vùng bảo vệ cần nhãn duyệt — thứ chỉ CI thấy được.
+set -u
+[ "${AGENTCTL_HOOKS:-on}" = "off" ] && exit 0
+root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+cd "$root" || exit 0
+
+bash scripts/_pyrun.sh -m tools.agentctl check-scope --staged
+status=$?
+if [ "$status" -eq 3 ]; then
+  echo "⚠️  agentctl thiếu môi trường (PyYAML?) — bỏ qua kiểm phạm vi cục bộ; CI vẫn kiểm." >&2
+  exit 0
+fi
+exit "$status"

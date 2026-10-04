@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Bí mật — chặn cả họ tên, không chỉ `.env`: bản sao lưu khi xoay khoá chứa khoá thật y hệt.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Dữ liệu cục bộ, CSDL, sao lưu (có thể chứa dữ liệu người dùng)
+# Bỏ qua NỘI DUNG của data/ nhưng GIỮ thư mục: DATABASE_URL mặc định là sqlite:///./data/app.db, và SQLite
+# không tạo được file trong thư mục không tồn tại. Trước 17/09/2026 dòng này là `data/` — bản clone sạch
+# không có thư mục, `alembic upgrade head` đầu tiên vỡ với "unable to open database file" ở MỌI dự án mới,
+# kể cả job `web` của CI. Không ai thấy vì máy người viết luôn có data/ sót lại từ lần chạy trước.
+data/*
+!data/.gitkeep
+*.db
+*.sqlite3
+backups/
+
+# Worktree của agent (agentctl start)
+.worktrees/
+
+# Frontend
+node_modules/
+.next/
+out/
+web/playwright-report/
+web/test-results/
+*.tsbuildinfo
+next-env.d.ts
+
+# Nhật ký/bộ nhớ cục bộ của công cụ AI — không phải nội dung dự án
+.claude/settings.local.json
+.claude/worktrees/
+.gemini/*
+!.gemini/settings.json
+.codex/*
+!.codex/hooks.json
+
+# Hệ điều hành / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+
+# Bảng việc HTML sinh bởi scripts/render_board.py (lỗi thời ngay, không commit)
+board/

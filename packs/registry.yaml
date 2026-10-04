@@ -1,0 +1,384 @@
+# Sổ đăng ký kỹ năng (skill) của template.
+#
+# 🔒 Vùng bảo vệ `design`: bật thêm một pack là đổi cách cả đội làm việc — cần người duyệt.
+#
+# VÌ SAO CHIA PACK thay vì cài hết: mô tả của MỌI skill được nạp vào ngữ cảnh ở MỌI phiên. Một template
+# 25 skill đánh thuế vĩnh viễn lên cả dự án CRUD không bao giờ đụng tới RAG hay finetune. Lõi luôn bật vì
+# nó là cách template này vận hành; phần còn lại bật theo loại dự án.
+#
+# Quy trình: `python scripts/packs.py --list` · `--install <pack>` · `--check` (CI).
+# Thêm pack mới hoặc viết nội dung cho pack `planned`: đọc packs/README.md.
+#
+# `integrations:` — công cụ ngoài pack cần để làm được việc. Ba loại:
+#   claude-plugin  plugin Claude Code (`id: name@marketplace`); người cài một lần mỗi máy, `--install` in lệnh.
+#   mcp            MCP server; `--install` GHI vào .mcp.json, `--remove` GỠ. Chỉ `${TEN_BIEN}`, không khoá thô.
+#   cli            công cụ dòng lệnh; `--install` kiểm có trên PATH chưa và in cách cài.
+# Mỗi mục bắt buộc có `why`: làm gì, và gửi dữ liệu gì ra ngoài nếu là dịch vụ từ xa. Chỉ khai công cụ đã
+# kiểm được cấu hình từ nguồn chính thức — lưới canh: tests/guards/test_pack_integrations.py.
+version: 1
+
+#: Luôn cài, mọi dự án. Đây là cách template vận hành, không phải tuỳ chọn.
+core:
+  - guard-net
+  - diagram
+  - adr
+  - ticket-flow
+  - multi-agent
+  - bug-fix
+  - idea-assessment
+
+#: `status: ready` = có nội dung trong packs/<tên>/skills/, cài được.
+#: `status: planned` = đã chốt phạm vi, CHƯA có nội dung. `--install` sẽ từ chối và nói rõ.
+#: Viết pack khi có dự án thật dùng nó — pack viết trước khi có người dùng sẽ thành tài liệu chết.
+packs:
+  backend:
+    label: Backend / API
+    status: ready
+    suits: [api-service, crud-web-app, llm-app, data-pipeline]
+    skills:
+      - name: api-contract
+        summary: Đổi API ⇒ sinh lại openapi.json, phát hiện thay đổi phá vỡ tương thích trước khi merge.
+      - name: db-migration
+        summary: Đổi schema ⇒ migration cùng PR, giữ một head, kiểm model khớp migration trên Postgres thật.
+      - name: observability
+        summary: Log có cấu trúc, trace id xuyên request, phân loại lỗi retryable/không.
+    integrations:
+      - kind: claude-plugin
+        id: pyright-lsp@claude-plugins-official
+        why: Lỗi kiểu Python hiện ngay khi agent sửa file, không đợi tới mypy trong CI.
+        fallback: "`python -m mypy` (đã có trong CI) hoặc `npx pyright`."
+      - kind: mcp
+        name: context7
+        config: {type: http, url: "https://mcp.context7.com/mcp"}
+        why: Tra tài liệu thư viện bản hiện hành (FastAPI, SQLAlchemy…) thay vì trí nhớ của mô hình. Gửi tên thư viện + câu truy vấn ra dịch vụ Upstash; không gửi mã nguồn.
+        fallback: "Đọc tài liệu chính thức đúng phiên bản đang ghim (`pip show <gói>`, `npm view <gói> version`); mở trang tài liệu bằng trình duyệt hoặc `curl`."
+
+  product-design:
+    label: Thiết kế sản phẩm (sơ đồ, bảng cấu trúc, bản mẫu)
+    status: ready
+    suits: [crud-web-app, llm-app, ai-product, api-service]
+    skills:
+      - name: diagram-roadmap
+        summary: Sơ đồ nào cần ở giai đoạn nào (khám phá → yêu cầu → kiến trúc → chi tiết → triển khai → vận hành), cho ai, ký hiệu gì, lưu đâu.
+      - name: data-model
+        summary: ERD + từ điển dữ liệu (kiểu, ràng buộc, nguồn, mức nhạy cảm) TRƯỚC model/migration; một bảng một chủ.
+      - name: design-tables
+        summary: Bảng cấu trúc thiết kế — truy vết yêu cầu, ma trận quyền, bảng chuyển trạng thái, danh mục lỗi, sổ rủi ro.
+      - name: figma-prototype
+        summary: Tư duy thiết kế với Figma/FigJam — vấn đề → luồng → khung dây → bản mẫu tương tác → thử với người → bàn giao token.
+    integrations:
+      - kind: claude-plugin
+        id: figma@claude-plugins-official
+        why: MCP Figma chính thức (https://mcp.figma.com/mcp, đăng nhập OAuth) + skill — đọc khung/biến thiết kế, vẽ sơ đồ FigJam, sinh thiết kế. Gói Starter hoặc ghế View/Collab chỉ 6 lượt gọi công cụ/tháng.
+        fallback: "Figma REST API với token cá nhân trong biến FIGMA_TOKEN: `curl -H \"X-Figma-Token: $FIGMA_TOKEN\" https://api.figma.com/v1/files/<key>`; hoặc xuất PNG/SVG + link file vào ticket; token biến đặt tay theo skill `design-system`."
+      - kind: claude-plugin
+        id: design@knowledge-work-plugins
+        marketplace: anthropics/knowledge-work-plugins
+        why: Skill thiết kế chính thức của Anthropic — design-critique, design-handoff, accessibility-review, ux-copy, user-research.
+        fallback: "Skill `figma-prototype`, `ux-prototype`, `ui-component` của template."
+      - kind: claude-plugin
+        id: product-management@knowledge-work-plugins
+        marketplace: anthropics/knowledge-work-plugins
+        why: Viết đặc tả tính năng, tổng hợp nghiên cứu người dùng, lộ trình — đầu vào cho sơ đồ và bảng yêu cầu.
+        fallback: "Skill `design-tables` (bảng yêu cầu có truy vết) + mẫu PRD tại docs/design/PRD.md."
+
+  frontend:
+    label: Frontend / UI
+    status: ready
+    suits: [crud-web-app, llm-app, ai-product]
+    skills:
+      - name: ui-component
+        summary: Dựng component kèm trạng thái rỗng/đang tải/lỗi, a11y bàn phím, và ngưỡng responsive thật.
+      - name: design-system
+        summary: Token ba tầng (primitive → semantic → component); cấm màu/cỡ viết thẳng trong component.
+      - name: ux-prototype
+        summary: Dựng bản mẫu nhanh để chốt luồng với người thật TRƯỚC khi viết code thật.
+    integrations:
+      - kind: claude-plugin
+        id: frontend-design@claude-plugins-official
+        why: Kỹ năng thiết kế giao diện chính thức của Claude Code — bổ sung, không thay luật trong web/AGENTS.md.
+        fallback: "Skill `design-system` + `ui-component` của template (Markdown, mọi agent đọc được)."
+      - kind: claude-plugin
+        id: typescript-lsp@claude-plugins-official
+        why: Lỗi kiểu TypeScript hiện ngay khi sửa, không đợi `npm run build`.
+        fallback: "`cd web && npx tsc --noEmit` và `npm run lint`."
+      - kind: mcp
+        name: playwright
+        config: {command: npx, args: ["@playwright/mcp@latest"]}
+        why: Agent mở trình duyệt thật để xem giao diện vừa sửa (ảnh chụp, bấm, điền form). Chạy cục bộ.
+        fallback: "`cd web && npx playwright codegen <url>` (ghi thao tác thành test), `npx playwright screenshot <url> out.png`, `npx playwright test --headed`."
+
+  data:
+    label: Dữ liệu
+    status: ready
+    suits: [data-pipeline, llm-app, ml-training, crud-web-app, research]
+    skills:
+      - name: data-ingest
+        summary: Nạp dữ liệu có provenance bắt buộc, mặc định chạy thử (dry-run), ghi lại được nhiều lần.
+      - name: data-quality
+        summary: Kiểm toàn vẹn, phân phối, null/outlier, và trôi dữ liệu giữa hai lần nạp.
+      - name: sql-perf
+        summary: Đọc EXPLAIN, đặt index theo truy vấn thật, bắt N+1.
+    integrations:
+      - kind: cli
+        name: psql
+        install: cài PostgreSQL client (gói `postgresql-client` / trình cài PostgreSQL trên Windows)
+        why: Chạy EXPLAIN (ANALYZE, BUFFERS) trên Postgres thật — SQLite không cho kế hoạch truy vấn giống production.
+
+  testing:
+    label: Kiểm thử
+    status: ready
+    suits: [crud-web-app, api-service, llm-app, ai-product, data-pipeline]
+    skills:
+      - name: test-strategy
+        summary: Chọn tầng test theo rủi ro (đơn vị · tích hợp · hợp đồng · E2E), không theo % coverage; mỗi bất biến một lưới.
+      - name: tdd-loop
+        summary: Đỏ → xanh → dọn, có bằng chứng từng đỏ; test hành vi qua giao diện công khai, không test chi tiết cài đặt.
+      - name: e2e-browser
+        summary: E2E bằng Playwright — chờ theo trạng thái không theo giờ, dữ liệu test tự dọn, `retries` = 0 để thấy lỗi thật.
+      - name: flaky-tests
+        summary: Test chập chờn là lỗi thật cho tới khi chứng minh khác — tái hiện bằng lặp, tìm nguồn bất định, không bật retry che.
+    integrations:
+      - kind: mcp
+        name: playwright
+        config: {command: npx, args: ["@playwright/mcp@latest"]}
+        why: Agent điều khiển trình duyệt thật để tái hiện lỗi giao diện và viết E2E theo đúng thứ đã thấy. Chạy cục bộ.
+        fallback: "`cd web && npx playwright codegen <url>` (ghi thao tác thành test), `npx playwright screenshot <url> out.png`, `npx playwright test --headed`."
+      - kind: claude-plugin
+        id: pr-review-toolkit@claude-plugins-official
+        why: Agent review chuyên về độ phủ test, xử lý lỗi, kiểu dữ liệu — chạy trước khi người đọc PR.
+        fallback: "Vai trò `reviewer` và `critic` trong coordination/roles/ — mọi công cụ đọc được."
+
+  ai-llm:
+    label: Ứng dụng LLM
+    status: ready
+    suits: [llm-app, ai-product]
+    skills:
+      - name: prompt-io
+        summary: Structured output schema hẹp, extra="forbid", retry có giới hạn; mô hình chọn, code tính.
+      - name: rag
+        summary: Chia đoạn, embedding, đo truy hồi (recall@k, MRR) TRƯỚC khi chỉnh prompt, rerank, ngưỡng từ chối.
+      - name: eval-harness
+        summary: Golden set, eval offline, LLM-judge kèm phép kiểm chính con judge, cổng hồi quy trong CI.
+      - name: token-economics
+        summary: Đếm token từ `usage` thật; tách input/output/cache; quy về $/đơn-vị-công-việc để so giữa các phiên.
+      - name: latency-slo
+        summary: P50/P95/P99 tính từ mẫu thô; TTFT khác tổng thời gian; cold start báo riêng; nêu rõ tải đồng thời.
+    integrations:
+      - kind: mcp
+        name: context7
+        config: {type: http, url: "https://mcp.context7.com/mcp"}
+        why: SDK mô hình đổi nhanh — tra tài liệu bản hiện hành thay vì trí nhớ. Gửi tên thư viện + câu truy vấn ra Upstash; không gửi mã nguồn.
+        fallback: "Đọc tài liệu chính thức đúng phiên bản đang ghim (`pip show <gói>`, `npm view <gói> version`); mở trang tài liệu bằng trình duyệt hoặc `curl`."
+
+  ai-product:
+    label: Sản phẩm AI hoàn chỉnh (agent, công cụ, phát hành)
+    status: ready
+    suits: [ai-product, llm-app]
+    skills:
+      - name: agent-architecture
+        summary: Chọn mức tự chủ thấp nhất đủ dùng (hàm → chuỗi cố định → agent có công cụ); giới hạn vòng lặp, ngân sách, điểm dừng.
+      - name: tool-design
+        summary: Công cụ cho agent — tên/mô tả như hợp đồng, tham số hẹp, lỗi trả về đọc được, hành động rủi ro cao qua cổng duyệt.
+      - name: mcp-server
+        summary: Đóng gói công cụ thành MCP server — chọn transport, xác thực, phạm vi chỉ đọc mặc định, kiểm bằng client thật.
+      - name: human-in-the-loop
+        summary: Chỗ nào người phải duyệt, giao diện duyệt hiện đủ bằng chứng, ghi audit, và đường lùi khi người từ chối.
+      - name: ai-release
+        summary: Phát hành tính năng AI — cổng eval trước merge, bật dần theo cờ, theo dõi chất lượng sau phát hành, tắt nhanh.
+    integrations:
+      - kind: claude-plugin
+        id: agent-sdk-dev@claude-plugins-official
+        why: Dựng và kiểm agent bằng Claude Agent SDK (khởi tạo dự án, kiểm cấu hình SDK).
+        fallback: "Tài liệu chính thức Claude Agent SDK + skill `agent-architecture`, `tool-design`."
+      - kind: claude-plugin
+        id: mcp-server-dev@claude-plugins-official
+        why: Hướng dẫn thiết kế, xây và triển khai MCP server (remote HTTP, MCPB, cục bộ).
+        fallback: "Đặc tả và SDK chính thức tại modelcontextprotocol.io + skill `mcp-server`."
+      - kind: mcp
+        name: context7
+        config: {type: http, url: "https://mcp.context7.com/mcp"}
+        why: Tra tài liệu SDK agent/MCP bản hiện hành. Gửi tên thư viện + câu truy vấn ra Upstash; không gửi mã nguồn.
+        fallback: "Đọc tài liệu chính thức đúng phiên bản đang ghim (`pip show <gói>`, `npm view <gói> version`); mở trang tài liệu bằng trình duyệt hoặc `curl`."
+
+  research:
+    label: Nghiên cứu
+    status: ready
+    suits: [research, ml-training, llm-app]
+    skills:
+      - name: literature-review
+        summary: Tìm và đọc tài liệu có hệ thống — câu hỏi rõ, tiêu chí chọn/loại ghi trước, trích nguồn sơ cấp, phân biệt bằng chứng mạnh/yếu.
+      - name: experiment-design
+        summary: Giả thuyết, biến đo, baseline, cỡ mẫu và sàn nhiễu chốt TRƯỚC khi chạy; ghi cả kết quả âm.
+      - name: research-notes
+        summary: Ghi chú nghiên cứu tái hiện được — lệnh, phiên bản dữ liệu, số đo trước/sau, giới hạn; không số nào thiếu nguồn.
+      - name: paper-search
+        summary: Tìm bài báo qua arXiv, OpenAlex, Semantic Scholar, PubMed bằng một lệnh không cần MCP; lần trích dẫn; kiểm DOI trước khi trích.
+      - name: repo-research
+        summary: Tìm và chấm repo mã nguồn mở (bảo trì, giấy phép, mức dùng, rủi ro một người, bảo mật) — đọc mã thật trước khi dùng/fork.
+      - name: model-hub-research
+        summary: Chọn mô hình/bộ dữ liệu trên Hugging Face — card, giấy phép, gated, phần cứng, tự đo trên dữ liệu của mình, ghim revision.
+    integrations:
+      - kind: cli
+        name: gh
+        install: https://cli.github.com
+        why: Tìm repo/mã (`gh search repos|code`) và đọc lịch sử, giấy phép, người đóng góp qua `gh api`. Không có thì `python -m scripts.research github`.
+      - kind: cli
+        name: hf
+        install: pip install -U "huggingface_hub[cli]"
+        why: Tìm/tải mô hình và bộ dữ liệu, đẩy dữ liệu nghiên cứu lên dataset riêng tư. Token đọc từ biến môi trường HF_TOKEN.
+
+  ml-dl:
+    label: Huấn luyện ML/DL
+    status: ready
+    suits: [ml-training, research]
+    skills:
+      - name: experiment-tracking
+        summary: Seed, config, phiên bản dữ liệu — một lần chạy phải dựng lại được từ bản ghi.
+      - name: train-eval
+        summary: Chia tập đúng, bắt rò rỉ nhãn, luôn có baseline tầm thường trước khi tin mô hình phức tạp.
+      - name: finetune
+        summary: Trước hết trả lời "vì sao KHÔNG phải prompt/RAG"; dataset, eval trước-sau trên cùng tập giữ.
+      - name: benchmark
+        summary: Warmup, N lần chạy, báo phương sai chứ không chỉ trung bình, so sánh công bằng cùng phần cứng.
+    integrations:
+      - kind: cli
+        name: hf
+        install: pip install -U "huggingface_hub[cli]"
+        why: Tải mô hình/dữ liệu đã ghim phiên bản (revision) để lần chạy dựng lại được. Token đọc từ HF_TOKEN.
+
+  ops:
+    label: CI/CD và vận hành
+    status: ready
+    suits: [api-service, crud-web-app, llm-app, ai-product, data-pipeline]
+    skills:
+      - name: ci-pipeline
+        summary: CI nhanh và trung thực — job song song không `needs`, cache phụ thuộc, bỏ qua PR nháp, script cục bộ phản chiếu CI.
+      - name: deploy-gate
+        summary: Cổng deploy chờ CI, đường lùi, và cách không để một job mới vô tình chặn production.
+      - name: deploy-targets
+        summary: Đưa web/API/app lên nền tảng (Render, Vercel, Docker trên VPS, HF Spaces) — biến môi trường, health check, rollback.
+      - name: incident
+        summary: 'Ghi sự cố không đổ lỗi: mốc thời gian, tác động đo được, nguyên nhân gốc, lưới canh sinh ra từ nó.'
+      - name: cost-guard
+        summary: Ngân sách phút CI và chi phí API; cảnh báo trước khi chạm trần, không phải sau.
+    integrations:
+      - kind: cli
+        name: gh
+        install: https://cli.github.com
+        why: Đọc trạng thái CI/PR, log job đỏ, mở PR nháp — mọi bước trong ticket-flow.
+      - kind: mcp
+        name: github
+        config: {type: http, url: "https://api.githubcopilot.com/mcp/", headers: {Authorization: "Bearer ${GITHUB_PERSONAL_ACCESS_TOKEN}"}}
+        why: Truy cập issue/PR/Actions qua MCP chính thức của GitHub. Dùng token chỉ-đọc nếu có thể; quyền của token là quyền của agent.
+        fallback: "CLI `gh`: `gh pr view`, `gh pr checks`, `gh run view <id> --log-failed`, `gh api repos/<chủ>/<repo>/...`."
+      - kind: claude-plugin
+        id: code-review@claude-plugins-official
+        why: Review PR bằng nhiều agent chuyên biệt có chấm độ tin cậy — bổ sung cho vai trò reviewer, không thay người duyệt.
+        fallback: "Vai trò `reviewer` (coordination/roles/reviewer.md) chạy bằng bất kỳ agent nào, ưu tiên khác nhà cung cấp với tác giả."
+      - kind: claude-plugin
+        id: security-guidance@claude-plugins-official
+        why: Cảnh báo mẫu mã nguy hiểm ngay khi sửa và review diff trước khi dừng.
+        fallback: "Skill `security-audit` (pack review-audit) + `pip-audit` + `npm audit`."
+      - kind: claude-plugin
+        id: vercel-plugin@vercel
+        marketplace: vercel/vercel-plugin
+        why: Thao tác Vercel (deploy, biến môi trường, log) cho frontend. Chỉ cần khi frontend deploy trên Vercel.
+        fallback: "CLI `vercel` (`npx vercel deploy`, `npx vercel env ls`, `npx vercel logs <url>`) hoặc dashboard Vercel."
+
+  infra:
+    label: Hạ tầng
+    status: ready
+    suits: [api-service, crud-web-app, llm-app, ai-product, data-pipeline]
+    skills:
+      - name: container-image
+        summary: Dockerfile nhiều tầng, user không phải root, pin phiên bản, image nhỏ, health check; build tái lập được.
+      - name: compose-stack
+        summary: Docker Compose cho dev/staging — profile theo vai trò, volume dữ liệu tách khỏi code, không bí mật trong file.
+      - name: iac
+        summary: Hạ tầng dạng code (Terraform) — plan trước apply, state không ở máy cá nhân, mọi thay đổi qua PR.
+      - name: secrets-env
+        summary: Biến môi trường theo môi trường (dev/staging/prod), kho bí mật, xoay khoá, cổng cấu hình production đổ khi thiếu.
+      - name: container-isolation
+        summary: Cách ly TUỲ CHỌN mỗi agent bằng container (container-use) — khi nào đáng dùng (lệnh không tin cậy, cần cách ly mạng/tiến trình), khi nào worktree đủ.
+    integrations:
+      - kind: cli
+        name: docker
+        install: https://docs.docker.com/get-docker/
+        why: Build image và chạy compose đúng như CI/production.
+      - kind: cli
+        name: terraform
+        install: https://developer.hashicorp.com/terraform/install
+        why: plan/apply hạ tầng dạng code. Agent chỉ chạy `plan`; `apply` là hành động người duyệt.
+      - kind: mcp
+        name: terraform
+        config: {command: docker, args: [run, -i, --rm, -e, "TFE_TOKEN=${TFE_TOKEN}", "hashicorp/terraform-mcp-server:0.4.0"]}
+        why: Tra registry provider/module Terraform bản hiện hành; TFE_TOKEN chỉ cần khi dùng HCP Terraform. Chạy trong container cục bộ.
+        fallback: "`terraform providers schema -json`, `terraform validate`, và tài liệu provider trên registry.terraform.io."
+      # container-use (dagger/container-use, Apache-2.0): cấu hình `container-use stdio` theo README chính thức, kiểm 2026-10-04.
+      - kind: cli
+        name: container-use
+        install: https://github.com/dagger/container-use
+        why: Mỗi agent một container + một nhánh git, xem lại lịch sử lệnh. Chỉ cần khi dùng skill `container-isolation`; cần Docker và Git. Cài bằng `brew install dagger/tap/container-use` hoặc script install.sh trong README.
+      - kind: mcp
+        name: container-use
+        config: {command: container-use, args: [stdio]}
+        why: TUỲ CHỌN — agent chạy lệnh trong container riêng thay vì shell máy người dùng. Chạy cục bộ qua Docker, không gửi dữ liệu ra dịch vụ từ xa; agent không bị ép dùng.
+        fallback: "Worktree hiện có (`python -m tools.agentctl start <ID>`) — cách ly tệp, không cách ly tiến trình/mạng; lệnh không tin cậy thì người chạy trong máy ảo hoặc container tự dựng."
+
+  review-audit:
+    label: Kiểm định và phản biện (audit, bảo mật, tranh luận)
+    status: ready
+    suits: [crud-web-app, api-service, llm-app, ai-product, data-pipeline, research]
+    skills:
+      - name: project-audit
+        summary: Audit định kỳ cả dự án — thiết kế ↔ code, lưới canh còn đỏ được, quy trình, phụ thuộc, bí mật, chi phí; báo cáo xanh/vàng/đỏ có bằng chứng.
+      - name: security-audit
+        summary: Mô hình mối đe doạ trên DFD (STRIDE), rủi ro web và rủi ro riêng của ứng dụng LLM/agent, quét phụ thuộc; phát hiện kèm bằng chứng và mức độ.
+      - name: critical-debate
+        summary: Tranh luận phản biện có cấu trúc cho một quyết định — bảo vệ mạnh nhất, tấn công độc lập, trọng tài theo bằng chứng, pre-mortem; ra DEC/ADR.
+    integrations:
+      - kind: claude-plugin
+        id: claude-security@claude-plugins-official
+        why: Quét lỗ hổng sâu ngay trong phiên Claude Code, mỗi phát hiện được kiểm lại trước khi báo — chạy trên mã của chính dự án.
+        fallback: "Skill `security-audit` + `pip-audit -r requirements.txt` + `cd web && npm audit --omit=dev`."
+      - kind: claude-plugin
+        id: engineering@knowledge-work-plugins
+        marketplace: anthropics/knowledge-work-plugins
+        why: Skill kỹ thuật chính thức của Anthropic — architecture, system-design, tech-debt, deploy-checklist, incident-response.
+        fallback: "Vai trò `architect`, `red-team`, `release-engineer` + skill `critical-debate`, `deploy-gate`."
+      - kind: cli
+        name: npx
+        install: "Node.js 18+, rồi: npx -y cc-safety-net@latest install && npx -y cc-safety-net@latest doctor"
+        why: "kenryu42/cc-safety-net (MIT) — chặn lệnh phá huỷ và đọc bí mật cho nhiều CLI hơn, có preset và rulebook Terraform/AWS/gcloud. Tuỳ chọn: hook scripts/hooks/guard_shell.py của template đã chặn phần lõi mà không cần Node."
+      - kind: cli
+        name: pip-audit
+        install: pip install pip-audit
+        why: Đối chiếu phụ thuộc Python với cơ sở dữ liệu lỗ hổng công khai. Gửi tên + phiên bản gói ra dịch vụ tra cứu; không gửi mã nguồn.
+
+  market:
+    label: Nghiên cứu thị trường
+    status: ready
+    suits: [ai-product, crud-web-app, llm-app, research]
+    skills:
+      - name: market-research
+        summary: Câu hỏi kinh doanh rõ, phân khúc, quy mô tính từ dưới lên có nguồn từng tham số, tín hiệu nhu cầu thật kèm cỡ mẫu.
+      - name: competitor-analysis
+        summary: So với cách người dùng đang làm hôm nay, sản phẩm thương mại và mã nguồn mở; bảng có nguồn + ngày; tự làm hay dùng sẵn.
+    integrations:
+      - kind: claude-plugin
+        id: product-management@knowledge-work-plugins
+        marketplace: anthropics/knowledge-work-plugins
+        why: Skill chính thức của Anthropic — competitive-brief, synthesize-research, write-spec.
+        fallback: "Skill `market-research` + `competitor-analysis` (bảng trong repo) và tìm kiếm web thường."
+
+#: Gợi ý pack theo loại dự án — `scripts/packs.py --list` in ra để người chọn, không tự bật.
+project_types:
+  crud-web-app: [market, product-design, backend, frontend, data, testing, ops, review-audit]
+  api-service: [backend, data, testing, ops, infra, review-audit]
+  llm-app: [product-design, backend, ai-llm, testing, ops, review-audit]
+  ai-product: [market, product-design, backend, frontend, ai-llm, ai-product, testing, ops, infra, review-audit]
+  ml-training: [data, ml-dl, research]
+  data-pipeline: [data, testing, ops]
+  research: [research, data, ml-dl, market]
+  prototype: []

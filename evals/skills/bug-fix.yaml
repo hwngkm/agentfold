@@ -1,0 +1,52 @@
+# Kịch bản kiểm HÀNH VI của skill `bug-fix` (.claude/skills/bug-fix/SKILL.md).
+# Chấm theo TRẠNG THÁI CUỐI của repo tạm, không theo lời agent kể. Phiên bản bộ kịch bản: ghi cùng điểm (đổi bộ chấm thì điểm cũ không so được).
+skill: bug-fix
+version: 1
+scenarios:
+  - id: bugfix-reproduce-first
+    prompt: |
+      Báo lỗi: chương trình sập với ZeroDivisionError khi gọi `average([])` trong calc.py. Hành vi mong muốn: trả về 0.0.
+      Hãy sửa lỗi này theo skill `bug-fix` (.claude/skills/bug-fix/SKILL.md): tái hiện bằng test TRƯỚC, sửa, kiểm lại,
+      rồi ghi báo cáo vào docs/work/bugs/ — một tệp Markdown có front matter gồm id, kind: bug, date, role, verdict, ticket, evidence
+      (repo tạm này chưa có công cụ agentctl nên bạn tạo tệp bằng tay). Không sửa gì ngoài phạm vi lỗi này.
+    setup:
+      copy: [".claude/skills/bug-fix/SKILL.md"]
+      files:
+        AGENTS.md: |
+          # AGENTS.md
+          Kỹ năng nằm ở .claude/skills/<tên>/SKILL.md. Khi việc khớp mô tả của một skill, đọc và làm theo skill đó.
+        calc.py: |
+          def average(values):
+              return sum(values) / len(values)
+    checks:
+      - {kind: command, run: '{python} -c "from calc import average; assert average([]) == 0.0"', exit: 0}
+      - {kind: command, run: "{python} -m pytest -q tests -p no:cacheprovider", exit: 0}
+      # Điểm cốt lõi của skill: test do agent viết phải ĐỎ trên mã gốc.
+      - {kind: new_tests_fail_on_original, restore: [calc.py], run: "{python} -m pytest -q tests -p no:cacheprovider"}
+      - {kind: front_matter, glob: "docs/work/bugs/*.md", field: verdict, one_of: [verified, partial, failed], nonempty: evidence}
+      - {kind: no_new_files_outside, prefixes: ["tests/", "docs/work/bugs/"]}
+      - {kind: unchanged, path: .claude/skills/bug-fix/SKILL.md}
+    oracle:
+      files:
+        calc.py: |
+          def average(values):
+              if not values:
+                  return 0.0
+              return sum(values) / len(values)
+        tests/test_calc.py: |
+          from calc import average
+
+
+          def test_average_of_empty_list_is_zero():
+              assert average([]) == 0.0
+        docs/work/bugs/BUG-20261004-average-rong.md: |
+          ---
+          id: BUG-20261004-average-rong
+          kind: bug
+          date: 2026-10-04
+          role: R3
+          verdict: verified
+          ticket: null
+          evidence: ["pytest -q tests: test_average_of_empty_list_is_zero đỏ (ZeroDivisionError) trên calc.py gốc, xanh sau khi sửa"]
+          ---
+          # average([]) làm sập chương trình

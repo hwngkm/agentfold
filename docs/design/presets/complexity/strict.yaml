@@ -1,0 +1,9 @@
+# Preset complexity: strict — dữ liệu nhạy cảm hoặc quy định chặt (y tế, tài chính, PII quy mô lớn...).
+name: strict
+label: Strict (rủi ro cao / quy định chặt)
+description: Thêm lớp bảo mật đồng duyệt; khuyến nghị 2 người duyệt vùng bảo vệ.
+min_approvals_protected: 2
+adr_required_note: >-
+  Toàn bộ danh sách ở GOVERNANCE §4, CỘNG THÊM: đổi bất kỳ luồng nào chạm dữ liệu định danh/nhạy cảm, hoặc
+  đổi một ngưỡng fail-closed hiện có.
+security_lane: true

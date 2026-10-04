@@ -1,0 +1,41 @@
+# Môi trường cục bộ TÁCH BIỆT: CSDL riêng trong container, không bao giờ trỏ vào CSDL production.
+# Chạy: docker compose up --build   → API http://localhost:8000 · Web http://localhost:3000
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: local-only-not-a-secret
+      POSTGRES_DB: app
+    ports: ["5432:5432"]
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: .
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgresql+psycopg2://app:local-only-not-a-secret@db:5432/app
+      CORS_ORIGINS: http://localhost:3000
+      LLM_PROVIDER: offline
+    ports: ["8000:8000"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./web
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    ports: ["3000:3000"]
+    depends_on:
+      - backend
+
+volumes:
+  db-data:

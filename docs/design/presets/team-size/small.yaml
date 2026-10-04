@@ -1,0 +1,17 @@
+# Preset team-size: small — 2 người, ghép vai trò để vẫn duyệt chéo được.
+name: small
+label: Small (2 người)
+description: R1 gánh kiến trúc + backend + vận hành; R2 gánh miền + frontend. Hai người luôn duyệt chéo nhau.
+roles:
+  - id: R1
+    title: Tech Lead · Architecture Owner · Backend & DevOps
+    backup: R2
+  - id: R2
+    title: Domain & Data Owner · Frontend & Delivery
+    backup: R1
+category_owner: { ARCH: R1, DOMAIN: R2, BACKEND: R1, OPS: R1, FRONTEND: R2, RELEASE: R2 }
+review:
+  self_merge_allowed: false
+notes: >-
+  Không ai duyệt PR của chính mình — với 2 người, điều đó nghĩa là người kia luôn là reviewer. Vùng bảo vệ
+  (thiết kế/luật/điều phối) vẫn chỉ một người (R1) sửa được: kiến trúc là một người chốt, kể cả đội nhỏ.

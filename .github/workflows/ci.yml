@@ -1,0 +1,187 @@
+# CI — năm job ĐỘC LẬP. Luật cấu trúc (khoá bởi tests/guards/test_deploy_waits_for_ci.py):
+#   1. Không job nào `needs` job khác: GitHub chỉ TẠO check run của job con khi job cha xong. Trong khoảng đó
+#      commit mang đúng một check xanh — nền tảng deploy "chờ check qua" có thể deploy trước khi test tồn tại.
+#   2. Điều kiện `if:` DUY NHẤT trên job là bỏ qua PR nháp. Render tính `skipped` là QUA: job bỏ qua được một
+#      lần đẩy vào `main` là một đường deploy không kiểm.
+#   3. Không `continue-on-error`, không `if:` theo sự kiện/nhánh trên bước, Playwright `retries: 0`.
+#   4. Tên job là hợp đồng với Vercel Deployment Checks — đổi tên thì đổi dashboard CÙNG LÚC.
+# Mọi lệnh `run:` phải có trong scripts/ci_local.py (hoặc được miễn có lý do): tests/guards/test_ci_local_mirror.py.
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["docs/**", "*.md"]
+  pull_request:
+    branches: [main]
+    # `ready_for_review` bắt buộc: thiếu nó thì bấm "Ready for review" không kích hoạt CI.
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore: ["docs/**", "*.md"]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  guards:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # check-work cần `origin/main` để không kiểm lại ticket đã merge theo chính sách mới
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Cài phụ thuộc
+        run: python -m pip install --no-cache-dir -r requirements-dev.txt
+      - name: Ruff lint
+        run: python -m ruff check .
+      - name: Ruff format
+        run: python -m ruff format --check .
+      - name: Vệ sinh repo
+        run: python scripts/check_structure.py
+      - name: Cấu trúc mục công việc
+        run: python -m tools.agentctl check-work
+      - name: Đặc tả sống (yêu cầu, kịch bản, test)
+        run: python -m tools.agentctl spec check
+      - name: Bộ chấm kiểm hành vi skill (oracle đạt, null trượt)
+        run: python scripts/skill_evals.py --check
+      - name: Lưới canh + công cụ điều phối
+        run: python -m pytest tests/guards tests/tools -q
+
+  test:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 20
+    env:
+      TZ: UTC
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Cài phụ thuộc
+        run: python -m pip install --no-cache-dir -r requirements-dev.txt
+      - name: Mypy
+        run: python -m mypy
+      - name: Unit test
+        run: python -m pytest tests/unit -q
+      - name: Hợp đồng API khớp ứng dụng
+        run: python scripts/export_openapi.py --check
+      - name: GOVERNANCE/CODEOWNERS khớp team-profile.yaml
+        run: python scripts/generate_team_docs.py --check
+      - name: Sơ đồ kiến trúc khớp boundaries.yaml + policy.yaml
+        run: python scripts/generate_diagrams.py --check
+      - name: Skill đã cài khớp project-profile.yaml
+        run: python scripts/packs.py --check
+      - name: DESIGN.md hợp lệ (token, tham chiếu, tương phản AA)
+        run: python scripts/check_design.py DESIGN.md
+
+  # Bộ test dựng bảng bằng create_all() trên SQLite — không chạy dòng migration nào. Job này chạy TOÀN BỘ chuỗi
+  # migration trên PostgreSQL trống rồi hỏi Alembic schema có khớp model không. PostgreSQL, không SQLite: SQLite
+  # chấp nhận những schema PostgreSQL từ chối.
+  migration-postgres:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: ci-only-not-a-secret
+          POSTGRES_DB: app_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      APP_ENV: test
+      DATABASE_URL: postgresql+psycopg2://app:ci-only-not-a-secret@127.0.0.1:5432/app_ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Cài phụ thuộc
+        run: python -m pip install --no-cache-dir -r requirements.txt
+      - name: Alembic upgrade head trên PostgreSQL trống
+        run: alembic upgrade head
+      - name: Migration khớp model
+        run: python scripts/check_migration_matches_models.py --dsn "$DATABASE_URL"
+
+  docker-build:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dựng image
+        run: docker build -t app:ci .
+
+  web:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 30
+    env:
+      APP_ENV: test
+      DATABASE_URL: sqlite:///./data/ci-web.db
+      NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8000
+      # Playwright mở 127.0.0.1:3000; CORS so khớp chuỗi CHÍNH XÁC nên `localhost` và `127.0.0.1` là hai origin
+      # khác nhau. Thiếu dòng này thì trang không gọi được API và smoke test đỏ vì CORS, không vì code.
+      CORS_ORIGINS: http://127.0.0.1:3000,http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Cài backend cho smoke test
+        run: |
+          python -m pip install --no-cache-dir -r requirements.txt
+          alembic upgrade head
+      - name: Cài frontend
+        working-directory: web
+        run: npm ci
+      - name: Lint frontend
+        working-directory: web
+        run: npm run lint
+      - name: Dựng frontend
+        working-directory: web
+        run: npm run build
+      - name: Bức tường biến môi trường Vercel còn đứng
+        working-directory: web
+        run: npm run check:env-wall
+      - name: E2E smoke
+        shell: bash
+        run: |
+          python -m uvicorn src.main:app --host 127.0.0.1 --port 8000 > backend-smoke.log 2>&1 &
+          trap 'kill %1 || true' EXIT
+          for attempt in $(seq 1 30); do curl --fail --silent http://127.0.0.1:8000/health && break; sleep 1; done
+          cd web
+          npx playwright install --with-deps chromium
+          npx playwright test
+      # Không bật retry để lấy màu xanh; giữ đỏ nhưng giữ luôn bằng chứng để đọc.
+      - name: Lưu báo cáo Playwright khi đỏ
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            web/playwright-report/
+            web/test-results/
+            backend-smoke.log
+          retention-days: 7
+          if-no-files-found: ignore

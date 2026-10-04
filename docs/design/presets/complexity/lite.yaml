@@ -1,0 +1,9 @@
+# Preset complexity: lite — dự án nhỏ/POC/hackathon. Gọn quy trình, giữ nguyên cưỡng chế kỹ thuật.
+name: lite
+label: Lite (POC / dự án nhỏ)
+description: Ít nghi thức hơn — ADR chỉ cho quyết định khó đảo ngược; 1 người duyệt là đủ.
+min_approvals_protected: 1
+adr_required_note: >-
+  Chỉ bắt buộc ADR khi quyết định KHÓ ĐẢO NGƯỢC (đổi CSDL, đổi nhà cung cấp mô hình, đổi ranh giới
+  LLM↔lõi tất định). Quyết định khác ghi một dòng quyết định (`new decision`) là đủ.
+security_lane: false

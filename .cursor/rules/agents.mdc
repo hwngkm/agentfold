@@ -1,0 +1,6 @@
+---
+description: Luật chung cho mọi AI agent — nguồn duy nhất là AGENTS.md
+alwaysApply: true
+---
+Luật cho mọi AI agent của repo này nằm trong `AGENTS.md` ở gốc repo (Cursor cũng tự đọc file đó).
+Adapter này chỉ để chắc chắn luật được nạp; không thêm luật ở đây.

@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Cổng đẩy lên remote — TÙY CHỌN, tắt mặc định. Dành cho chế độ "agent chỉ commit cục bộ, người chủ repo
+# duyệt rồi tự đẩy" (rút từ một dự án thực tế, nơi hai agent thay nhau làm và mọi kết quả qua một người duyệt).
+#
+# Bật (mỗi bản clone):   git config agentctl.pushGate on
+# Người chủ repo đẩy:    ALLOW_PUSH=1 git push origin <nhánh>        (PowerShell: $env:ALLOW_PUSH='1'; git push ...)
+#
+# Không bật thì hook im lặng — luồng chuẩn của template (agent tự mở PR nháp) không bị đổi.
+# Ngoại lệ luôn cho qua: nhánh sổ claim `agent-claims` và hộp thư `agent-mail` (agentctl phải ghi được, R50.9, AGENT-LOG).
+#
+# Giới hạn nói thật: đây là cái chắn tốc độ, không phải ranh giới bảo mật — agent có thể tự đặt ALLOW_PUSH=1.
+# Lớp chặn thật nằm ở luật (AGENTS.md cấm) và branch protection. Hook cố ý KHÔNG nghe `AGENTCTL_HOOKS=off`
+# vì công tắc đó có sẵn trong tầm tay agent; muốn tắt cổng thì tắt cấu hình `agentctl.pushGate`.
+set -u
+[ "$(git config --get agentctl.pushGate 2>/dev/null || true)" = "on" ] || exit 0
+[ "${ALLOW_PUSH:-}" = "1" ] && exit 0
+
+claims_only=1
+seen=0
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  seen=1
+  case "$remote_ref" in refs/heads/agent-claims|refs/heads/agent-mail) ;; *) claims_only=0 ;; esac
+done
+[ "$seen" -eq 1 ] && [ "$claims_only" -eq 1 ] && exit 0
+
+echo "🔴 Cổng đẩy đang BẬT (git config agentctl.pushGate): chỉ người chủ repo đẩy sau khi duyệt." >&2
+echo "   Agent: dừng, báo cáo theo AGENTS.md §9 và chờ. Người chủ: ALLOW_PUSH=1 git push ..." >&2
+exit 1

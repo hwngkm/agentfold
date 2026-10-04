@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Thông điệp commit phải dạng `type(scope): mô tả` và mang `(<ID>)` khi ở nhánh ticket —
+# đó là cách DUY NHẤT hệ thống biết ticket đã merge (không ai ghi `done` bằng tay).
+set -u
+[ "${AGENTCTL_HOOKS:-on}" = "off" ] && exit 0
+root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+message_file="$1"
+case "$message_file" in
+  /*|[A-Za-z]:*) ;;
+  *) message_file="$(pwd)/$message_file" ;;
+esac
+cd "$root" || exit 0
+
+bash scripts/_pyrun.sh -m tools.agentctl check-commit-msg "$message_file"
+status=$?
+[ "$status" -eq 3 ] && exit 0
+exit "$status"

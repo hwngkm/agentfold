@@ -1,0 +1,35 @@
+{
+  "context": {
+    "fileName": [
+      "AGENTS.md"
+    ]
+  },
+  "hooks": {
+    "BeforeTool": [
+      {
+        "matcher": "write_file|replace",
+        "hooks": [
+          {
+            "name": "agentctl-guard-write",
+            "type": "command",
+            "command": "bash -c 'root=\"$(git rev-parse --show-toplevel)\" && bash \"$root/scripts/_pyrun.sh\" \"$root/scripts/hooks/guard_write.py\"'",
+            "timeout": 20000,
+            "description": "Chặn ghi vào vùng bảo vệ hoặc ngoài phạm vi ticket (thoát mã 2)"
+          }
+        ]
+      },
+      {
+        "matcher": "run_shell_command|read_file|read_many_files",
+        "hooks": [
+          {
+            "name": "agentctl-guard-shell",
+            "type": "command",
+            "command": "bash -c 'root=\"$(git rev-parse --show-toplevel)\" && bash \"$root/scripts/_pyrun.sh\" \"$root/scripts/hooks/guard_shell.py\"'",
+            "timeout": 10000,
+            "description": "Chặn lệnh phá huỷ và đọc bí mật (thoát mã 2)"
+          }
+        ]
+      }
+    ]
+  }
+}

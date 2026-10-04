@@ -1,0 +1,7 @@
+# Preset complexity: standard — mặc định của template.
+name: standard
+label: Standard (mặc định)
+description: Mức nghi thức mặc định của template — danh sách ADR đầy đủ, 1 người duyệt vùng bảo vệ.
+min_approvals_protected: 1
+adr_required_note: null
+security_lane: false

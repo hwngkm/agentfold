@@ -1,0 +1,27 @@
+{
+  "description": "Chặn ghi ngoài phạm vi ticket (cùng logic pre-commit/CI) và lệnh phá huỷ / đọc bí mật.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "apply_patch|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'root=\"$(git rev-parse --show-toplevel)\" && bash \"$root/scripts/_pyrun.sh\" \"$root/scripts/hooks/guard_write.py\"'",
+            "timeout": 20
+          }
+        ]
+      },
+      {
+        "matcher": "shell|local_shell|exec_command|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'root=\"$(git rev-parse --show-toplevel)\" && bash \"$root/scripts/_pyrun.sh\" \"$root/scripts/hooks/guard_shell.py\"'",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

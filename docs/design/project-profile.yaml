@@ -1,0 +1,17 @@
+# Hồ sơ DỰ ÁN NÀY — loại dự án và các pack kỹ năng đang bật.
+#
+# 🔒 Vùng bảo vệ `design`. Bật/tắt pack là quyết định của người: nó đổi bộ kỹ năng mà mọi agent nạp ở mọi
+# phiên. Sửa bằng `python scripts/packs.py --install <pack>` / `--remove <pack>`, đừng sửa tay rồi quên
+# cài file (lưới canh `tests/guards/test_packs.py` sẽ đỏ).
+#
+# Đây là trục THỨ BA, độc lập với `team-profile.yaml` (team_size × complexity):
+#   team_size  = có bao nhiêu người, ai chịu trách nhiệm vùng nào
+#   complexity = mức nghi thức duyệt/ADR
+#   packs      = dự án này làm loại việc gì, nên có sẵn kỹ năng nào
+version: 1
+
+#: Xem danh sách và pack gợi ý: python scripts/packs.py --list
+project_type: unspecified # crud-web-app | api-service | llm-app | ai-product | ml-training | data-pipeline | research | prototype
+
+#: Pack đang bật. Skill lõi (packs/registry.yaml `core:`) luôn cài, không liệt kê ở đây.
+packs: []

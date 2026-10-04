@@ -1,0 +1,13 @@
+# Profile đang áp dụng cho DỰ ÁN NÀY — nguồn sự thật cho docs/GOVERNANCE.md, .github/CODEOWNERS, và
+# phần `owners:` trong coordination/policy.yaml. Ba file đó là SINH RA, không sửa tay — sửa profile này
+# rồi chạy: python scripts/generate_team_docs.py --apply
+#
+# 🔒 Vùng bảo vệ `design`. Đổi team_size/complexity là quyết định của người (docs/GOVERNANCE.md §3).
+# Xem lựa chọn và ý nghĩa từng preset: docs/design/presets/README.md
+version: 1
+team_size: solo # solo | small | standard | large
+complexity: standard # lite | standard | strict
+#
+# Handle GitHub THẬT cho CODEOWNERS (vai trò → tài khoản). Không khai thì CODEOWNERS dùng handle giữ chỗ `@rN-...`.
+github_handles:
+  R1: "@hwngkm" # chủ repo

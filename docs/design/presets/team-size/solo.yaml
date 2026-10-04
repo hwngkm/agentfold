@@ -1,0 +1,18 @@
+# Preset team-size: solo — một người + AI agent làm mọi vai trò.
+name: solo
+label: Solo (1 người)
+description: >-
+  Một người thật đứng sau mọi quyết định; AI agent làm phần lớn việc thực thi dưới sự giám sát của người
+  đó. Không có người thứ hai để duyệt chéo.
+roles:
+  - id: R1
+    title: Người duy nhất — kiến trúc, miền, backend, frontend, vận hành
+    backup: null
+category_owner: { ARCH: R1, DOMAIN: R1, BACKEND: R1, OPS: R1, FRONTEND: R1, RELEASE: R1 }
+review:
+  self_merge_allowed: true
+notes: >-
+  Không có người thứ hai duyệt PR — bù bằng agent `reviewer` (đổi sang NHÀ CUNG CẤP KHÁC agent đã viết
+  code) đọc diff trước khi tự duyệt: hai mô hình khác nhau ít chia sẻ cùng điểm mù. CI xanh và
+  `check-scope` vẫn bắt buộc, vì mục đích của chúng là ngăn CHÍNH BẠN — qua nhiều phiên agent song song —
+  giẫm chân nhau, không chỉ ngăn người khác.

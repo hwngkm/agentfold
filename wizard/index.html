@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tạo dự án mới</title>
+<!--
+  Giao diện tạo dự án cho người không chuyên. MỞ BẰNG NHẤP ĐÚP — không cần mạng, không cài gì.
+  Trang này KHÔNG gửi dữ liệu đi đâu và KHÔNG hỏi mật khẩu/khoá. Kết quả là tệp project-setup.json + lệnh để chạy:
+      python scripts/setup_project.py project-setup.json            (chạy thử, chưa đổi gì)
+      python scripts/setup_project.py project-setup.json --apply    (làm thật)
+  Danh mục lựa chọn bên dưới được SINH từ packs/registry.yaml và preset đội — đừng sửa tay
+  (`python scripts/setup_project.py --write-wizard`; CI kiểm bằng `--check-wizard`).
+-->
+<style>
+:root {
+  --bg: #f7f7f5; --surface: #ffffff; --text: #1c1c1a; --muted: #5b5b57; --line: #dcdcd6;
+  --accent: #1f5fbf; --accent-text: #ffffff; --accent-soft: #e6eefb; --ok: #1d7a46; --warn: #8a5a00; --warn-soft: #fff4dc;
+  --danger: #b42318; --radius: 10px; --gap: 1rem;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141413; --surface: #1e1e1c; --text: #ececea; --muted: #a8a8a2; --line: #3a3a36;
+    --accent: #7aa7f0; --accent-text: #0e1a2e; --accent-soft: #1f2a3d; --ok: #5cc48a; --warn: #f0c060; --warn-soft: #3a2f14;
+    --danger: #f2877d; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 46rem; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+h1 { font-size: 1.6rem; margin: 0 0 .25rem; }
+h2 { font-size: 1.2rem; margin: 0 0 .75rem; }
+p.lead { color: var(--muted); margin: 0 0 1.25rem; }
+.progress { display: flex; gap: .35rem; margin: 0 0 1.25rem; padding: 0; list-style: none; flex-wrap: wrap; }
+.progress li { flex: 1 1 4.5rem; font-size: .8rem; color: var(--muted); border-top: 4px solid var(--line); padding-top: .3rem; }
+.progress li.done { border-color: var(--ok); color: var(--text); }
+.progress li.current { border-color: var(--accent); color: var(--text); font-weight: 600; }
+section.step { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.25rem; }
+section.step[hidden] { display: none; }
+label.field { display: block; font-weight: 600; margin: 0 0 .3rem; }
+fieldset.design { margin: 1rem 0 0; padding: 0; border: 0; }
+.swatches { display: grid; grid-template-columns: 1fr auto; gap: .5rem .75rem; align-items: center; margin-top: .75rem; }
+.swatches input[type=color] { width: 3.2rem; height: 2.4rem; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.hint { color: var(--muted); font-size: .9rem; margin: .2rem 0 .9rem; }
+input[type=text] { width: 100%; padding: .65rem .75rem; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+input[type=text]:focus-visible, .choice:focus-within, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.choices { display: grid; gap: .6rem; margin: 0; padding: 0; border: 0; }
+.choice { display: flex; gap: .7rem; align-items: flex-start; padding: .75rem .85rem; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); cursor: pointer; }
+.choice:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.choice input { margin-top: .3rem; width: 1.1rem; height: 1.1rem; flex: none; }
+.choice strong { display: block; }
+.choice span { color: var(--muted); font-size: .92rem; }
+.tag { display: inline-block; font-size: .78rem; padding: 0 .45rem; border-radius: 999px; background: var(--accent-soft); color: var(--text); margin-left: .35rem; }
+.note { border-left: 4px solid var(--warn); background: var(--warn-soft); padding: .7rem .85rem; border-radius: 6px; margin: .9rem 0 0; }
+.note.ok { border-color: var(--ok); background: var(--accent-soft); }
+.error { color: var(--danger); font-weight: 600; margin: .4rem 0 0; }
+.nav { display: flex; justify-content: space-between; gap: .75rem; margin-top: 1.25rem; }
+button { font: inherit; min-height: 44px; padding: .55rem 1.1rem; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer; }
+button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+table { width: 100%; border-collapse: collapse; margin: .5rem 0 1rem; font-size: .95rem; }
+th, td { text-align: left; vertical-align: top; padding: .45rem .5rem; border-bottom: 1px solid var(--line); }
+th { width: 34%; color: var(--muted); font-weight: 600; }
+pre { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: .75rem; overflow-x: auto; font-size: .88rem; white-space: pre-wrap; word-break: break-word; }
+.tabs { display: flex; gap: .4rem; margin: .5rem 0; flex-wrap: wrap; }
+.tabs button[aria-selected="true"] { background: var(--accent-soft); border-color: var(--accent); font-weight: 600; }
+ol.steps-list { padding-left: 1.2rem; }
+ol.steps-list li { margin-bottom: .5rem; }
+@media (max-width: 480px) { th { width: 40%; } section.step { padding: 1rem; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Tạo dự án mới</h1>
+  <p class="lead">Trả lời vài câu hỏi bằng ngôn ngữ thường. Cuối cùng bạn nhận một tệp cấu hình và đúng các lệnh cần chạy.
+    Trang này chạy hoàn toàn trên máy bạn: không gửi dữ liệu đi đâu, không hỏi mật khẩu hay khoá.</p>
+  <noscript><p class="note">Trang cần JavaScript để chạy. Bật JavaScript, hoặc nhờ người kỹ thuật dùng
+    <code>scripts/setup_project.py</code> trực tiếp.</p></noscript>
+
+  <ol class="progress" id="progress" aria-label="Các bước"></ol>
+
+  <section class="step" data-step="0" aria-labelledby="s0">
+    <h2 id="s0">1. Dự án của bạn tên gì?</h2>
+    <label class="field" for="name">Tên dự án</label>
+    <input type="text" id="name" maxlength="80" autocomplete="off" placeholder="Ví dụ: Trợ lý kho thuốc">
+    <p class="hint">Tên hiển thị, có dấu thoải mái.</p>
+    <label class="field" for="slug">Tên viết liền (dùng cho thư mục, đường dẫn)</label>
+    <input type="text" id="slug" maxlength="41" autocomplete="off" spellcheck="false" placeholder="tro-ly-kho-thuoc">
+    <p class="hint">Tự tạo từ tên. Chỉ chữ thường không dấu, số và dấu gạch nối.</p>
+    <fieldset class="design" id="design">
+      <legend class="field">Màu giao diện (tuỳ chọn)</legend>
+      <label class="choice"><input type="checkbox" id="designOn"><span>Tạo luôn tệp DESIGN.md khởi đầu để AI biết màu và chữ của giao diện</span></label>
+      <div id="designBox" hidden>
+        <div class="swatches">
+          <label for="cPrimary">Màu chính (nút, liên kết)</label><input type="color" id="cPrimary" value="#0f766e">
+          <label for="cBackground">Màu nền</label><input type="color" id="cBackground" value="#ffffff">
+          <label for="cText">Màu chữ</label><input type="color" id="cText" value="#0f172a">
+        </div>
+        <p class="hint" id="designHint" role="status"></p>
+      </div>
+    </fieldset>
+    <p class="error" id="err0" role="alert"></p>
+  </section>
+
+  <section class="step" data-step="1" aria-labelledby="s1" hidden>
+    <h2 id="s1">2. Dự án để làm gì?</h2>
+    <p class="hint">Chọn mô tả gần nhất — sau này đổi được. Lựa chọn này quyết định bộ kỹ năng được gợi ý.</p>
+    <fieldset class="choices" id="types"><legend class="hint">Loại dự án</legend></fieldset>
+    <p class="error" id="err1" role="alert"></p>
+  </section>
+
+  <section class="step" data-step="2" aria-labelledby="s2" hidden>
+    <h2 id="s2">3. Ai cùng làm?</h2>
+    <fieldset class="choices" id="people"><legend class="field">Bao nhiêu người (không tính AI) cùng chịu trách nhiệm?</legend></fieldset>
+    <fieldset class="choices" id="sensitive" style="margin-top:1rem">
+      <legend class="field">Dự án có đụng tới dữ liệu nhạy cảm không?</legend>
+      <p class="hint">Ví dụ: sức khoẻ, tài chính, giấy tờ tuỳ thân, dữ liệu trẻ em. Có thì cần quy trình duyệt chặt hơn.</p>
+    </fieldset>
+    <div id="teamNote"></div>
+    <p class="error" id="err2" role="alert"></p>
+  </section>
+
+  <section class="step" data-step="3" aria-labelledby="s3" hidden>
+    <h2 id="s3">4. Bạn dùng trợ lý lập trình AI nào?</h2>
+    <p class="hint">Chọn tất cả những gì bạn hoặc nhóm dùng. Không chọn gì cũng được — dự án hoạt động với mọi công cụ.</p>
+    <fieldset class="choices" id="tools"><legend class="hint">Công cụ AI</legend></fieldset>
+  </section>
+
+  <section class="step" data-step="4" aria-labelledby="s4" hidden>
+    <h2 id="s4">5. Bộ kỹ năng cho AI</h2>
+    <p class="hint">Đã chọn sẵn theo loại dự án. Mỗi bộ thêm hướng dẫn mà trợ lý AI phải đọc ở mọi phiên — chỉ bật cái thật sự cần.</p>
+    <fieldset class="choices" id="packs"><legend class="hint">Bộ kỹ năng</legend></fieldset>
+  </section>
+
+  <section class="step" data-step="5" aria-labelledby="s5" hidden>
+    <h2 id="s5">6. Xem lại và tạo cấu hình</h2>
+    <table><tbody id="summary"></tbody></table>
+    <button class="primary" id="download" type="button">Tải tệp project-setup.json</button>
+    <h2 style="margin-top:1.5rem">Chạy trên máy có mã dự án</h2>
+    <p class="hint">Đặt tệp vừa tải vào thư mục dự án, rồi mở cửa sổ dòng lệnh tại đó.</p>
+    <div class="tabs" role="tablist" aria-label="Hệ điều hành">
+      <button type="button" role="tab" id="tab-win" aria-selected="true">Windows (PowerShell)</button>
+      <button type="button" role="tab" id="tab-unix" aria-selected="false">macOS / Linux</button>
+    </div>
+    <ol class="steps-list">
+      <li>Xem trước — chưa đổi gì:<pre id="cmdPreview"></pre></li>
+      <li>Làm thật (cần cây git sạch, để mọi thay đổi xem lại và hoàn tác được):<pre id="cmdApply"></pre></li>
+    </ol>
+    <button type="button" id="copy">Sao chép các lệnh</button> <span id="copied" role="status"></span>
+    <p class="note ok">An toàn: tệp chỉ chứa lựa chọn của bạn — không mật khẩu, không khoá. Lệnh đầu tiên chỉ in kế hoạch.
+      Không ưng kết quả: <code>git checkout -- . &amp;&amp; git clean -fd</code> đưa mọi thứ về như cũ.</p>
+  </section>
+
+  <div class="nav">
+    <button type="button" id="back">← Quay lại</button>
+    <button type="button" class="primary" id="next">Tiếp →</button>
+  </div>
+</main>
+
+<!-- CATALOG:BEGIN — sinh bởi scripts/setup_project.py, đừng sửa tay -->
+<script id="catalog" type="application/json">
+{
+ "agent_tools": {
+  "antigravity": "Antigravity — đọc AGENTS.md; kỹ năng qua SKILLS.md.",
+  "claude-code": "Claude Code — tự nạp kỹ năng, cài được plugin/MCP.",
+  "codex": "Codex — đọc AGENTS.md; kỹ năng qua SKILLS.md.",
+  "copilot": "GitHub Copilot — đọc AGENTS.md; kỹ năng qua SKILLS.md.",
+  "cursor": "Cursor — đọc AGENTS.md; kỹ năng qua SKILLS.md.",
+  "gemini-cli": "Gemini CLI — đọc AGENTS.md; kỹ năng qua SKILLS.md."
+ },
+ "compatible": {
+  "large": [
+   "lite",
+   "standard",
+   "strict"
+  ],
+  "small": [
+   "lite",
+   "standard"
+  ],
+  "solo": [
+   "lite",
+   "standard",
+   "strict"
+  ],
+  "standard": [
+   "lite",
+   "standard",
+   "strict"
+  ]
+ },
+ "complexities": [
+  "lite",
+  "standard",
+  "strict"
+ ],
+ "packs": [
+  {
+   "id": "backend",
+   "label": "Backend / API",
+   "skills": [
+    "api-contract",
+    "db-migration",
+    "observability"
+   ],
+   "tools": [
+    "pyright-lsp@claude-plugins-official",
+    "context7"
+   ]
+  },
+  {
+   "id": "product-design",
+   "label": "Thiết kế sản phẩm (sơ đồ, bảng cấu trúc, bản mẫu)",
+   "skills": [
+    "diagram-roadmap",
+    "data-model",
+    "design-tables",
+    "figma-prototype"
+   ],
+   "tools": [
+    "figma@claude-plugins-official",
+    "design@knowledge-work-plugins",
+    "product-management@knowledge-work-plugins"
+   ]
+  },
+  {
+   "id": "frontend",
+   "label": "Frontend / UI",
+   "skills": [
+    "ui-component",
+    "design-system",
+    "ux-prototype"
+   ],
+   "tools": [
+    "frontend-design@claude-plugins-official",
+    "typescript-lsp@claude-plugins-official",
+    "playwright"
+   ]
+  },
+  {
+   "id": "data",
+   "label": "Dữ liệu",
+   "skills": [
+    "data-ingest",
+    "data-quality",
+    "sql-perf"
+   ],
+   "tools": [
+    "psql"
+   ]
+  },
+  {
+   "id": "testing",
+   "label": "Kiểm thử",
+   "skills": [
+    "test-strategy",
+    "tdd-loop",
+    "e2e-browser",
+    "flaky-tests"
+   ],
+   "tools": [
+    "playwright",
+    "pr-review-toolkit@claude-plugins-official"
+   ]
+  },
+  {
+   "id": "ai-llm",
+   "label": "Ứng dụng LLM",
+   "skills": [
+    "prompt-io",
+    "rag",
+    "eval-harness",
+    "token-economics",
+    "latency-slo"
+   ],
+   "tools": [
+    "context7"
+   ]
+  },
+  {
+   "id": "ai-product",
+   "label": "Sản phẩm AI hoàn chỉnh (agent, công cụ, phát hành)",
+   "skills": [
+    "agent-architecture",
+    "tool-design",
+    "mcp-server",
+    "human-in-the-loop",
+    "ai-release"
+   ],
+   "tools": [
+    "agent-sdk-dev@claude-plugins-official",
+    "mcp-server-dev@claude-plugins-official",
+    "context7"
+   ]
+  },
+  {
+   "id": "research",
+   "label": "Nghiên cứu",
+   "skills": [
+    "literature-review",
+    "experiment-design",
+    "research-notes",
+    "paper-search",
+    "repo-research",
+    "model-hub-research"
+   ],
+   "tools": [
+    "gh",
+    "hf"
+   ]
+  },
+  {
+   "id": "ml-dl",
+   "label": "Huấn luyện ML/DL",
+   "skills": [
+    "experiment-tracking",
+    "train-eval",
+    "finetune",
+    "benchmark"
+   ],
+   "tools": [
+    "hf"
+   ]
+  },
+  {
+   "id": "ops",
+   "label": "CI/CD và vận hành",
+   "skills": [
+    "ci-pipeline",
+    "deploy-gate",
+    "deploy-targets",
+    "incident",
+    "cost-guard"
+   ],
+   "tools": [
+    "gh",
+    "github",
+    "code-review@claude-plugins-official",
+    "security-guidance@claude-plugins-official",
+    "vercel-plugin@vercel"
+   ]
+  },
+  {
+   "id": "infra",
+   "label": "Hạ tầng",
+   "skills": [
+    "container-image",
+    "compose-stack",
+    "iac",
+    "secrets-env",
+    "container-isolation"
+   ],
+   "tools": [
+    "docker",
+    "terraform",
+    "terraform",
+    "container-use",
+    "container-use"
+   ]
+  },
+  {
+   "id": "review-audit",
+   "label": "Kiểm định và phản biện (audit, bảo mật, tranh luận)",
+   "skills": [
+    "project-audit",
+    "security-audit",
+    "critical-debate"
+   ],
+   "tools": [
+    "claude-security@claude-plugins-official",
+    "engineering@knowledge-work-plugins",
+    "npx",
+    "pip-audit"
+   ]
+  },
+  {
+   "id": "market",
+   "label": "Nghiên cứu thị trường",
+   "skills": [
+    "market-research",
+    "competitor-analysis"
+   ],
+   "tools": [
+    "product-management@knowledge-work-plugins"
+   ]
+  }
+ ],
+ "project_types": [
+  {
+   "help": "Đăng nhập, nhập liệu, tra cứu, báo cáo — như phần mềm quản lý nội bộ.",
+   "id": "crud-web-app",
+   "label": "Ứng dụng web quản lý",
+   "packs": [
+    "market",
+    "product-design",
+    "backend",
+    "frontend",
+    "data",
+    "testing",
+    "ops",
+    "review-audit"
+   ]
+  },
+  {
+   "help": "Không có giao diện riêng; phần mềm khác gửi yêu cầu tới.",
+   "id": "api-service",
+   "label": "Dịch vụ cho hệ thống khác gọi (API)",
+   "packs": [
+    "backend",
+    "data",
+    "testing",
+    "ops",
+    "infra",
+    "review-audit"
+   ]
+  },
+  {
+   "help": "Hỏi đáp trên tài liệu, tóm tắt, trích xuất thông tin bằng mô hình ngôn ngữ.",
+   "id": "llm-app",
+   "label": "Ứng dụng có dùng AI",
+   "packs": [
+    "product-design",
+    "backend",
+    "ai-llm",
+    "testing",
+    "ops",
+    "review-audit"
+   ]
+  },
+  {
+   "help": "Trợ lý/agent có công cụ, có người duyệt, có giao diện, có kế hoạch phát hành và nghiên cứu thị trường.",
+   "id": "ai-product",
+   "label": "Sản phẩm AI hoàn chỉnh",
+   "packs": [
+    "market",
+    "product-design",
+    "backend",
+    "frontend",
+    "ai-llm",
+    "ai-product",
+    "testing",
+    "ops",
+    "infra",
+    "review-audit"
+   ]
+  },
+  {
+   "help": "Tự huấn luyện hoặc tinh chỉnh mô hình học máy trên dữ liệu của mình.",
+   "id": "ml-training",
+   "label": "Huấn luyện mô hình",
+   "packs": [
+    "data",
+    "ml-dl",
+    "research"
+   ]
+  },
+  {
+   "help": "Thu thập, làm sạch, chuẩn hoá dữ liệu định kỳ.",
+   "id": "data-pipeline",
+   "label": "Xử lý dữ liệu tự động",
+   "packs": [
+    "data",
+    "testing",
+    "ops"
+   ]
+  },
+  {
+   "help": "Tìm tài liệu, so sánh mô hình/bộ dữ liệu có sẵn, chạy thí nghiệm, viết ghi chú.",
+   "id": "research",
+   "label": "Nghiên cứu",
+   "packs": [
+    "research",
+    "data",
+    "ml-dl",
+    "market"
+   ]
+  },
+  {
+   "help": "Ít thủ tục nhất; chỉ bộ kỹ năng lõi.",
+   "id": "prototype",
+   "label": "Thử nghiệm nhanh một ý tưởng",
+   "packs": []
+  }
+ ],
+ "team_sizes": [
+  "solo",
+  "small",
+  "standard",
+  "large"
+ ],
+ "version": 1
+}
+</script>
+<!-- CATALOG:END -->
+
+<script>
+"use strict";
+const CAT = JSON.parse(document.getElementById("catalog").textContent);
+const STEPS = ["Tên", "Mục đích", "Đội", "Công cụ AI", "Kỹ năng", "Hoàn tất"];
+const PEOPLE = [
+  { id: "solo", label: "Một mình tôi", help: "Bạn quyết và tự duyệt." },
+  { id: "small", label: "2 người", help: "Hai người duyệt chéo nhau." },
+  { id: "standard", label: "3–5 người", help: "Mỗi người một mảng chính." },
+  { id: "large", label: "6 người trở lên", help: "Có người lo riêng bảo mật." },
+];
+const state = { step: 0, name: "", slug: "", slugTouched: false, type: "", team: "", sensitive: "", tools: [], packs: [],
+  design: { on: false, primary: "#0f766e", background: "#ffffff", text: "#0f172a" } };
+
+const $ = (id) => document.getElementById(id);
+const el = (tag, attrs = {}, ...kids) => {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "text") node.textContent = v; else if (v !== false && v !== null) node.setAttribute(k, v === true ? "" : v);
+  }
+  kids.forEach((k) => node.append(k));
+  return node;
+};
+
+function slugify(text) {
+  return text.replace(/đ/g, "d").replace(/Đ/g, "D").normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 41).replace(/-+$/, "");
+}
+const SLUG_OK = /^[a-z][a-z0-9-]{2,40}$/;
+
+function choice(group, type, value, title, help, checked, extra) {
+  const input = el("input", { type, name: group, value, checked });
+  const text = el("div", {}, el("strong", { text: title }), el("span", { text: help || "" }));
+  if (extra) text.querySelector("strong").append(extra);
+  return el("label", { class: "choice" }, input, text);
+}
+
+function complexity() {
+  if (state.sensitive === "yes") return "strict";
+  if (state.type === "prototype") return "lite";
+  return "standard";
+}
+function teamValid() { return (CAT.compatible[state.team] || []).includes(complexity()); }
+
+function render() {
+  const progress = $("progress");
+  progress.replaceChildren(...STEPS.map((label, i) =>
+    el("li", { class: i < state.step ? "done" : i === state.step ? "current" : "", "aria-current": i === state.step ? "step" : false, text: `${i + 1}. ${label}` })));
+  document.querySelectorAll("section.step").forEach((s) => { s.hidden = Number(s.dataset.step) !== state.step; });
+  $("back").disabled = state.step === 0;
+  $("next").hidden = state.step === STEPS.length - 1;
+  if (state.step === 2) renderTeamNote();
+  if (state.step === 4) renderPacks();
+  if (state.step === 5) renderSummary();
+  const heading = document.querySelector(`section.step[data-step="${state.step}"] h2`);
+  if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: false }); }
+}
+
+function buildStatic() {
+  $("types").append(...CAT.project_types.map((t) => choice("type", "radio", t.id, t.label, t.help, false)));
+  $("people").append(...PEOPLE.map((p) => choice("team", "radio", p.id, p.label, p.help, false)));
+  $("sensitive").append(
+    choice("sensitive", "radio", "no", "Không", "Dữ liệu thường, công khai hoặc nội bộ.", false),
+    choice("sensitive", "radio", "yes", "Có", "Quy trình duyệt chặt hơn: thêm bước kiểm bảo mật cho thay đổi quan trọng.", false));
+  $("tools").append(...Object.entries(CAT.agent_tools).map(([id, help]) => choice("tool", "checkbox", id, help.split(" — ")[0], help.split(" — ")[1] || "", false)));
+  document.addEventListener("change", (e) => {
+    const t = e.target;
+    if (t.name === "type") { state.type = t.value; state.packs = [...(CAT.project_types.find((x) => x.id === t.value)?.packs || [])]; }
+    if (t.name === "team") state.team = t.value;
+    if (t.name === "sensitive") state.sensitive = t.value;
+    if (t.name === "tool") state.tools = [...document.querySelectorAll('input[name="tool"]:checked')].map((x) => x.value);
+    if (t.name === "pack") state.packs = [...document.querySelectorAll('input[name="pack"]:checked')].map((x) => x.value);
+    if (state.step === 2) renderTeamNote();
+  });
+  $("name").addEventListener("input", (e) => {
+    state.name = e.target.value;
+    if (!state.slugTouched) { state.slug = slugify(state.name); $("slug").value = state.slug; }
+  });
+  $("slug").addEventListener("input", (e) => { state.slugTouched = true; state.slug = e.target.value.trim(); });
+  $("designOn").addEventListener("change", (e) => { state.design.on = e.target.checked; renderDesign(); });
+  for (const [id, key] of [["cPrimary", "primary"], ["cBackground", "background"], ["cText", "text"]]) {
+    $(id).addEventListener("input", (e) => { state.design[key] = e.target.value.toLowerCase(); renderDesign(); });
+  }
+  renderDesign();
+}
+
+function renderTeamNote() {
+  const box = $("teamNote");
+  if (!state.team || !state.sensitive) { box.replaceChildren(); return; }
+  const levelText = { lite: "nhẹ (thử nghiệm)", standard: "tiêu chuẩn", strict: "chặt (dữ liệu nhạy cảm)" }[complexity()];
+  box.replaceChildren(teamValid()
+    ? el("p", { class: "note ok", text: `Quy trình duyệt: ${levelText}.` })
+    : el("p", { class: "note", text: `Đội cỡ này chưa đủ người cho quy trình ${levelText}: mỗi thay đổi quan trọng cần đủ người duyệt khác người viết ra nó. Các mức dùng được với đội này: ${(CAT.compatible[state.team] || []).join(", ")}. Hãy chọn đội lớn hơn, hoặc nhờ thêm người duyệt trước khi bắt đầu.` }));
+}
+
+function renderPacks() {
+  const box = $("packs");
+  box.querySelectorAll("label").forEach((n) => n.remove());
+  const suggested = new Set(CAT.project_types.find((x) => x.id === state.type)?.packs || []);
+  box.append(...CAT.packs.map((p) => choice("pack", "checkbox", p.id, p.label,
+    `Kỹ năng: ${p.skills.join(", ")}${p.tools.length ? ` · Công cụ đi kèm: ${p.tools.join(", ")}` : ""}`,
+    state.packs.includes(p.id), suggested.has(p.id) ? el("span", { class: "tag", text: "gợi ý" }) : null)));
+}
+
+function setupObject() {
+  const s = { version: CAT.version, name: state.name.trim(), slug: state.slug, project_type: state.type,
+    team_size: state.team, complexity: complexity(), packs: [...state.packs].sort(), agent_tools: state.tools };
+  if (state.design.on) {
+    s.design = { primary: state.design.primary, background: state.design.background, text: state.design.text };
+  }
+  return s;
+}
+
+// Tương phản WCAG 2.x giữa hai màu #rrggbb — cùng công thức với scripts/check_design.py (nơi kiểm thật sự).
+function contrast(a, b) {
+  const lum = (hex) => {
+    const [r, g, bl] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+      .map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * bl;
+  };
+  const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+function designOk() { return contrast(state.design.text, state.design.background) >= 4.5; }
+function renderDesign() {
+  $("designBox").hidden = !state.design.on;
+  const ratio = contrast(state.design.text, state.design.background);
+  $("designHint").textContent = ratio >= 4.5
+    ? `Chữ trên nền đọc rõ (tương phản ${ratio.toFixed(1)}:1).`
+    : `Chữ trên nền khó đọc (tương phản ${ratio.toFixed(1)}:1, cần ít nhất 4,5:1) — chọn chữ đậm hơn hoặc nền nhạt hơn.`;
+}
+
+let os = "win";
+function renderSummary() {
+  const s = setupObject();
+  const typeLabel = CAT.project_types.find((t) => t.id === s.project_type)?.label || s.project_type;
+  const people = PEOPLE.find((p) => p.id === s.team_size)?.label || s.team_size;
+  const level = { lite: "Nhẹ — thử nghiệm", standard: "Tiêu chuẩn", strict: "Chặt — dữ liệu nhạy cảm" }[s.complexity];
+  const toolNames = s.agent_tools.map((t) => (CAT.agent_tools[t] || t).split(" — ")[0]);
+  const packNames = s.packs.map((p) => CAT.packs.find((x) => x.id === p)?.label || p);
+  const rows = [["Tên", `${s.name} (${s.slug})`], ["Mục đích", typeLabel], ["Đội", people],
+    ["Mức duyệt", level], ["Công cụ AI", toolNames.join(", ") || "chưa chọn"],
+    ["Bộ kỹ năng", packNames.join(" · ") || "chỉ bộ lõi"],
+    ["Màu giao diện", s.design ? `Chính ${s.design.primary} · nền ${s.design.background} · chữ ${s.design.text}` : "không tạo DESIGN.md"]];
+  $("summary").replaceChildren(...rows.map(([k, v]) => el("tr", {}, el("th", { scope: "row", text: k }), el("td", { text: v }))));
+  const py = os === "win" ? "python" : "python3";
+  $("cmdPreview").textContent = `${py} scripts/setup_project.py project-setup.json`;
+  $("cmdApply").textContent = `${py} scripts/setup_project.py project-setup.json --apply`;
+  $("tab-win").setAttribute("aria-selected", String(os === "win"));
+  $("tab-unix").setAttribute("aria-selected", String(os === "unix"));
+}
+
+function validateStep() {
+  const errs = { 0: "err0", 1: "err1", 2: "err2" };
+  let msg = "";
+  if (state.step === 0) {
+    if (state.name.trim().length < 2) msg = "Hãy nhập tên dự án (ít nhất 2 ký tự).";
+    else if (!SLUG_OK.test(state.slug)) msg = "Tên viết liền cần 3–41 ký tự: chữ thường không dấu, số, gạch nối, bắt đầu bằng chữ.";
+    else if (state.design.on && !designOk()) msg = "Màu chữ và màu nền chưa đủ tương phản (cần ít nhất 4,5:1) — xem gợi ý ở mục màu.";
+  }
+  if (state.step === 1 && !state.type) msg = "Hãy chọn một mục đích.";
+  if (state.step === 2) {
+    if (!state.team || !state.sensitive) msg = "Hãy trả lời cả hai câu hỏi.";
+    else if (!teamValid()) msg = "Lựa chọn hiện tại chưa đủ người duyệt — xem ghi chú ở trên.";
+  }
+  if (errs[state.step]) $(errs[state.step]).textContent = msg;
+  return !msg;
+}
+
+$("next").addEventListener("click", () => { if (validateStep()) { state.step += 1; render(); } });
+$("back").addEventListener("click", () => { state.step = Math.max(0, state.step - 1); render(); });
+$("tab-win").addEventListener("click", () => { os = "win"; renderSummary(); });
+$("tab-unix").addEventListener("click", () => { os = "unix"; renderSummary(); });
+$("download").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(setupObject(), null, 2) + "\n"], { type: "application/json" });
+  const a = el("a", { href: URL.createObjectURL(blob), download: "project-setup.json" });
+  document.body.append(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+});
+$("copy").addEventListener("click", async () => {
+  const text = `${$("cmdPreview").textContent}\n${$("cmdApply").textContent}`;
+  try { await navigator.clipboard.writeText(text); $("copied").textContent = "Đã sao chép."; }
+  catch { $("copied").textContent = "Không sao chép tự động được — hãy bôi đen và sao chép tay."; }
+});
+
+buildStatic();
+render();
+</script>
+</body>
+</html>

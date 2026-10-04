@@ -1,0 +1,39 @@
+[project]
+name = "agentfold"
+version = "0.1.0"
+description = "Mẫu dự án AI Agent: thiết kế do người chốt, nhiều AI agent khác nhà cung cấp cùng làm không xung đột."
+requires-python = ">=3.11"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+extend-exclude = ["web", ".worktrees"]
+
+[tool.ruff.lint]
+# E722/BLE001: cấm `except:` và `except Exception:` trần — luật bằng code, không bằng lời dặn.
+# T20: cấm `print()` trong mã ứng dụng (dùng logger); công cụ dòng lệnh được miễn ở dưới.
+select = ["E", "F", "I", "N", "W", "UP", "B", "BLE", "T20"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tools/**" = ["T20"]
+"scripts/**" = ["T20"]
+"tests/**" = ["T20"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Gốc repo luôn trên sys.path, bất kể gọi `pytest` hay `python -m pytest`.
+pythonpath = ["."]
+addopts = "-p no:cacheprovider"
+markers = ["slow: test đắt (dùng `-m \"not slow\"` cho vòng lặp nhanh; CI vẫn chạy đủ)"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src", "tools", "scripts"]
+disallow_untyped_defs = true
+check_untyped_defs = true
+warn_unused_ignores = true
+ignore_missing_imports = true

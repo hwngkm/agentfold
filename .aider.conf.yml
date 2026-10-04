@@ -1,0 +1,3 @@
+# Adapter cho Aider — nạp AGENTS.md dạng chỉ-đọc vào mọi phiên. Luật mới viết vào AGENTS.md.
+read:
+  - AGENTS.md
