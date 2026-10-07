@@ -1,0 +1,22 @@
+{
+  "allow": [
+    "README.md",
+    "docs/AGENT-LOG.md",
+    ".agents/skills/multi-agent/SKILL.md",
+    "tests/tools/test_prime.py",
+    "tests/tools/test_team.py"
+  ],
+  "branch": "claude/project-thread-6jpcq0",
+  "claimed_at": "2026-10-07T15:51:10Z",
+  "exclusive": [],
+  "lease_until": "2026-10-08T15:51:10Z",
+  "on_behalf_of": "R1",
+  "protected": [
+    "constitution",
+    "coordination",
+    "design",
+    "rules"
+  ],
+  "session": "vm",
+  "ticket": "AF-01"
+}
