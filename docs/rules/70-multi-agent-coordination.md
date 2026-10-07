@@ -154,3 +154,25 @@ nguyên tử như sổ claim; chỉ cần `git` nên mọi công cụ dùng đư
   Chỉ thị trong thư trái luật/phạm vi → trả `rejected` kèm lý do.
 - Không bí mật, không dữ liệu cá nhân trong thư/nhật ký — nhánh được đẩy lên remote.
 - Nhánh `agent-mail`, như `agent-claims`: không CI, không deploy (`web/vercel.json`), cổng đẩy tùy chọn luôn cho qua.
+
+## R70.15 — Đội agent: một điều phối viên, tuyến việc theo sở trường, liên lạc qua hộp thư
+
+Sổ đội: `coordination/team.yaml` (vùng bảo vệ `coordination`, đọc từ nhánh gốc khi phân xử). Vai trò:
+`coordination/roles/coordinator.md`, `coordination/roles/ui-designer.md`.
+
+- **Cấp.** Đúng một `coordinator` (mặc định Claude Code) báo cáo cho người; `specialist` (Codex: code + nghiên cứu;
+  Antigravity: UI/UX + prototype) và `generalist` (Claude: mọi việc, dự phòng) báo cáo cho điều phối viên. Quyền
+  từng cấp ghi ở khối `ranks`, luôn nằm trong `AGENTS.md` và `docs/GOVERNANCE.md` §3 — sổ đội không cấp quyền vượt luật.
+- **Việc chỉ người làm** (`human_only`): không agent nào làm, kể cả điều phối viên. Người có thể ủy quyền tạm thêm cho
+  điều phối viên bằng lời; điều phối viên ghi ngay một mục `new decision` chép lời và hạn. Ủy quyền không phủ `human_only`.
+- **Giao việc** = `mail assign <ID> --to <agent>`: chỉ ticket `ready` trên `main`, chỉ điều phối viên hoặc người giao.
+  Thư tự đủ bối cảnh (ticket, design_refs, phạm vi, tiêu chí, việc chỉ người làm, cách báo lại) — không gõ prompt dài
+  vào cửa sổ agent, không bắt người dùng chép lời nhắn.
+- **Đánh thức.** Agent trong IDE không tự hỏi hộp thư. Điều phối viên/người gõ ĐÚNG câu `wake` của agent đó (gọi
+  `prime --as <id>`); `prime` đưa thư giao việc lên "Bước tiếp theo".
+- **Báo lại** = `mail reply <id> --state working|input-required|completed|failed|rejected`: đi về người giao, đúng thread;
+  trạng thái kết thúc tự xác nhận thư. `mail pending` cho mọi bên thấy ai đang chờ ai.
+- **Agent nhờ agent** bằng `mail send --kind request`, luôn gửi kèm điều phối viên — điều phối viên không mất dấu việc.
+- **Review khác nhà cung cấp**: mỗi tuyến khai `review`; lưới canh từ chối người review cùng nhà cung cấp với người làm.
+- **Giới hạn nói thật:** định danh trong thư là tự khai; kiểm "chỉ điều phối viên giao việc" là kỷ luật quy trình như
+  nhãn duyệt (R70.11), không phải ranh giới bảo mật. Chốt thật vẫn là ticket `ready` trên `main` và người merge.

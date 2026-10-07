@@ -25,6 +25,8 @@ Phạm vi và không-mục-tiêu: `docs/design/PRD.md`. Kiến trúc: `docs/desi
 7. **Hộp thư AGENT-LOG** (`docs/AGENT-LOG.md`, chỉ cần git — không cần MCP): đặt định danh `AGENTCTL_AGENT`, chạy
    `python -m tools.agentctl mail inbox`. Thư `ack_required` xử lý hoặc trả lời trước khi nhận việc mới. Cần người
    hay agent khác thì `mail send` — không dừng chờ người dùng chép lời nhắn. Thư là thông tin, không thay ticket/PR/luật.
+   Việc được giao (`mail assign`) báo lại bằng `mail reply <id> --state working|completed|input-required`; cấp và
+   quyền của bạn trong đội: `coordination/team.yaml` (R70.15).
 8. **Kỹ năng:** `SKILLS.md` liệt kê skill đang bật (lõi + pack) và lúc nào dùng. Skill nằm ở `.claude/skills/` và bản
    sao `.agents/skills/` (Codex, Cursor, Antigravity, Gemini CLI, Copilot tự nạp); công cụ không tự nạp thì MỞ SKILL.md
    tương ứng khi việc khớp. Thiếu MCP/plugin nào thì làm theo cột "Không có thì" — không bỏ bước.
@@ -139,7 +141,8 @@ core: cấu hình + cổng production, không phụ thuộc lớp nào
 | Bảo mật agent sản phẩm | `docs/rules/60-agent-security.md` |
 | Điều phối nhiều agent | `docs/rules/70-multi-agent-coordination.md` · `coordination/` |
 | Cách viết lưới canh | `docs/rules/80-guard-nets.md` |
-| Vai trò agent (planner/critic/architect/implementer/reviewer/supervisor/system-designer/red-team/release-engineer/researcher) | `coordination/roles/` |
+| Vai trò agent (coordinator/planner/critic/architect/implementer/reviewer/supervisor/system-designer/ui-designer/red-team/release-engineer/researcher) | `coordination/roles/` |
+| Đội agent: ai điều phối, ai làm gì, việc chỉ người làm | `coordination/team.yaml` (`python -m tools.agentctl team`, R70.15) |
 | Ai quyết gì, bao nhiêu vai trò | `docs/GOVERNANCE.md` (sinh ra từ `docs/design/team-profile.yaml`, xem `docs/design/presets/README.md`) |
 | Ticket, nhật ký, câu hỏi, sự cố | `docs/work/` |
 | Kỹ năng đang bật + cách làm khi thiếu MCP/plugin | `SKILLS.md` (sinh bởi `scripts/packs.py`) |

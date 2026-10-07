@@ -245,6 +245,34 @@ def _cmd_prime(repo: Path, args: argparse.Namespace) -> int:
     return fixed
 
 
+def _cmd_team(repo: Path, args: argparse.Namespace) -> int:
+    from tools.agentctl.team import TEAM_PATH, load_team
+
+    try:
+        _policy, base_ref = load_context(repo, fetch=not args.offline)
+        team, where = load_team(repo, base_ref), base_ref
+    except AgentctlError:
+        team, where = load_team(repo, None), "cây làm việc"
+    if team is None:
+        raise AgentctlError(f"chưa có `{TEAM_PATH}` — chép mẫu trong agentfold rồi điền đội của dự án")
+    if args.route:
+        route = team.route(args.route)
+        print(
+            f"{route.kind}: làm `{route.primary}` · dự phòng `{route.backup or '—'}` · review `{route.review or '—'}`"
+        )
+        return 0
+    print(f"# Đội agent ({TEAM_PATH} @ {where})")
+    for m in team.members.values():
+        print(f"- `{m.id}` ({m.tool}, {m.vendor}) · {m.rank} · thay {m.on_behalf_of} · báo cho `{m.reports_to}`")
+        print(f"    mạnh: {', '.join(m.strengths)}")
+        print(f"    đánh thức: {m.wake}")
+    print("\n# Tuyến việc (làm · dự phòng · review)")
+    for r in team.routes.values():
+        print(f"- {r.kind}: `{r.primary}` · `{r.backup or '—'}` · `{r.review or '—'}`")
+    print("\n# Chỉ người làm\n" + "\n".join(f"- {item}" for item in team.human_only))
+    return 0
+
+
 def _cmd_spec(repo: Path, args: argparse.Namespace) -> int:
     if args.spec_action == "check":
         problems = repo_problems(repo)
@@ -340,6 +368,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="chạy `bash scripts/cloud_setup.sh` để dựng môi trường (chỉ khi người cho phép; mặc định chỉ cảnh báo)",
     )
 
+    team = sub.add_parser("team", help="đội agent: ai điều phối, ai làm gì, tuyến việc (coordination/team.yaml)")
+    team.add_argument("--route", help="chỉ in tuyến của một loại việc, vd. ui, backend")
+    team.add_argument("--offline", action="store_true", help="không gọi mạng, dùng bản đã kéo về")
+
     board = sub.add_parser("board", help="bảng công việc suy ra từ ticket + claim + lịch sử")
     board.add_argument("--offline", action="store_true")
     return parser
@@ -361,6 +393,7 @@ HANDLERS: dict[str, Handler] = {
     "pr-body": _cmd_pr_body,
     "prime": _cmd_prime,
     "spec": _cmd_spec,
+    "team": _cmd_team,
 }
 
 

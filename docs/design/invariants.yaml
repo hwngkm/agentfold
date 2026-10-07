@@ -427,3 +427,24 @@ invariants:
       - tests/guards/test_cloud_setup.py::test_moi_hook_git_duoc_luu_voi_quyen_thuc_thi
       - tests/guards/test_cloud_setup.py::test_chay_kho_in_ke_hoach_va_khong_doi_gi
       - tests/guards/test_cloud_setup.py::test_khong_thay_repo_thi_thoat_0_va_noi_ro
+
+  - id: INV-029
+    title: Đội agent có đúng một điều phối viên, chỉ giao ticket đã duyệt, và không ai tự nâng quyền qua sổ đội
+    severity: high
+    owner: R1
+    statement: >-
+      coordination/team.yaml có đúng một agent `coordinator`, mọi chuỗi báo cáo tới người, mọi tuyến trỏ tới agent có thật
+      và người review khác nhà cung cấp với người làm, và có danh sách việc chỉ người làm; khi phân xử sổ đọc từ nhánh gốc
+      nên sửa bản cục bộ không đổi được quyền; `mail assign` chỉ giao ticket `ready` trên nhánh gốc, chỉ điều phối viên
+      hoặc người giao, và thư giao việc tự đủ bối cảnh; trạng thái báo lại đi về người giao theo đúng thứ tự gửi.
+      Luật: docs/rules/70-multi-agent-coordination.md R70.15.
+    enforcement: automated
+    enforced_by:
+      - tests/guards/test_team_roster.py::test_so_doi_cua_repo_hop_le_va_phu_du_viec
+      - tests/tools/test_team.py::test_so_doi_sai_bi_tu_choi
+      - tests/tools/test_team.py::test_so_doi_doc_tu_nhanh_goc_khong_tu_ban_cuc_bo
+      - tests/tools/test_team.py::test_giao_viec_dung_thu_tu_du_boi_canh_tu_ticket_da_duyet
+      - tests/tools/test_team.py::test_khong_giao_ticket_chua_ready
+      - tests/tools/test_team.py::test_chi_dieu_phoi_hoac_nguoi_moi_giao_viec
+      - tests/tools/test_team.py::test_tra_loi_cap_nhat_trang_thai_va_viec_dang_cho
+      - tests/tools/test_prime.py::test_prime_cho_biet_vi_tri_trong_doi_va_uu_tien_thu_giao_viec

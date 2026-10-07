@@ -43,6 +43,23 @@ phạm vi thì mở câu hỏi:
 python -m tools.agentctl new question --title "..." --blocking <MÃ>
 ```
 
+## Đội agent: giao việc và báo lại qua hộp thư (R70.15)
+
+`coordination/team.yaml` ghi ai điều phối, ai mạnh việc gì, tuyến việc → agent chính/dự phòng/review, và việc chỉ
+người làm. Xem: `python -m tools.agentctl team [--route ui]`.
+
+```bash
+# điều phối viên
+python -m tools.agentctl mail assign <MÃ> --to codex --as claude-code --note "..."   # thư tự đủ bối cảnh
+python -m tools.agentctl mail pending                                               # ai đang chờ ai
+# agent nhận việc (đánh thức bằng câu `wake` trong sổ đội)
+python -m tools.agentctl prime --as codex                     # bước tiếp theo trỏ thẳng tới thư giao việc
+python -m tools.agentctl mail reply <id> --state working --as codex
+python -m tools.agentctl mail reply <id> --state completed --subject "Xong, commit abc1234" --as codex
+```
+
+Agent trong IDE không tự hỏi hộp thư: người/điều phối viên chỉ gõ câu `wake` ngắn, mọi chi tiết nằm trong thư.
+
 ## Khi hook chặn ghi file
 
 Hook (`PreToolUse`/`BeforeTool` → `scripts/hooks/guard_write.py`) chặn **lúc soạn**, sớm hơn commit và PR.
