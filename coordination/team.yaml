@@ -1,0 +1,83 @@
+# Sổ đội agent — ai điều phối, ai làm gì, ai review ai, việc nào chỉ người làm.
+# Đọc bởi: `python -m tools.agentctl team`, `mail assign`, `prime`. Luật: docs/rules/70-multi-agent-coordination.md R70.15.
+#
+# 🔒 Vùng bảo vệ `coordination`: khi phân xử, file này đọc từ NHÁNH GỐC (origin/main) — agent sửa bản cục bộ không tự
+#    nâng quyền được. Trao thêm quyền cho agent = sửa file này trong PR có người duyệt.
+# 🪪 Khoá dưới `agents:` là định danh phiên (`AGENTCTL_AGENT` / `--as`). Một công cụ chạy nhiều phiên song song thì
+#    thêm hậu tố (`codex-2`) và khai thêm một mục.
+# 📮 `wake`: agent trong IDE không tự hỏi hộp thư — điều phối viên (hoặc người) đánh thức bằng ĐÚNG câu này, ngắn và
+#    cố định; mọi chi tiết việc nằm trong thư `mail assign`, không gõ prompt dài vào cửa sổ agent.
+version: 1
+
+# Không agent nào làm, kể cả điều phối viên, kể cả khi được ủy quyền tạm (R70.15).
+human_only:
+  - đặt ticket `ready` hoặc đổi phạm vi ticket
+  - gắn nhãn `human-approved`, chấp nhận ADR, sửa vùng bảo vệ ngoài PR có người duyệt
+  - chọn ngưỡng, hệ số, nguồn số liệu nghiệp vụ
+  - việc không hoàn tác được — tạo repo công khai, deploy, gửi dữ liệu ra ngoài, đẩy lên remote mạng khi chưa được cho phép
+  - trao thêm quyền cho agent (sửa `coordination/team.yaml`)
+
+# Quyền theo cấp — trong phạm vi AGENTS.md và docs/GOVERNANCE.md, không vượt.
+ranks:
+  coordinator:
+    - giao ticket `ready` cho agent hợp tuyến (`mail assign`), đánh thức agent bằng câu `wake`
+    - theo dõi việc chờ (`mail pending`), chuyển việc sang agent dự phòng khi agent chính hết hạn mức hay bị chặn
+    - review diff, yêu cầu sửa, merge vào `main` sau CI xanh và đã tự đọc diff (theo docs/GOVERNANCE.md §3)
+    - dọn claim bỏ dở (`release --override`, `reap`), soạn ticket `proposed`, ADR `Proposed`, câu hỏi cho người
+    - gom câu hỏi cần người thành một lần hỏi, báo người khi có kết quả hoặc bị chặn
+  specialist:
+    - làm ticket được giao, trong phạm vi, test trước, báo trạng thái bằng `mail reply`
+    - nhờ agent khác bằng `mail send --kind request` (luôn gửi kèm điều phối viên)
+    - mở câu hỏi, đề xuất ticket `proposed` hoặc ADR `Proposed` trong chuyên môn
+  generalist:
+    - làm ticket được giao ở mọi tuyến, báo trạng thái bằng `mail reply`
+    - thay agent chính khi điều phối viên chuyển việc
+    - nhờ agent khác bằng `mail send --kind request` (luôn gửi kèm điều phối viên)
+
+agents:
+  claude-code:
+    tool: claude-code
+    vendor: anthropic
+    rank: coordinator
+    on_behalf_of: R1
+    reports_to: human
+    strengths: [điều phối, lập kế hoạch, review, merge, làm được mọi loại việc]
+    wake: "tự đọc hộp thư ở hook SessionStart (`prime`); phiên dài thì chạy nền `python -m tools.agentctl mail watch --as claude-code`"
+  codex:
+    tool: codex
+    vendor: openai
+    rank: specialist
+    on_behalf_of: R1
+    reports_to: claude-code
+    strengths: [code backend và dữ liệu, test, nghiên cứu, đánh giá mô hình]
+    wake: "gõ vào khung chat Codex: Chạy `python -m tools.agentctl prime --as codex` rồi làm theo hộp thư."
+  antigravity:
+    tool: antigravity
+    vendor: google
+    rank: specialist
+    on_behalf_of: R1
+    reports_to: claude-code
+    strengths: [thiết kế UI/UX, prototype, luồng màn hình, giao diện web]
+    wake: "gõ vào khung agent Antigravity: Chạy `python -m tools.agentctl prime --as antigravity` rồi làm theo hộp thư."
+  claude:
+    tool: other
+    vendor: anthropic
+    rank: generalist
+    on_behalf_of: R1
+    reports_to: claude-code
+    strengths: [làm được mọi loại việc, tài liệu, phân tích, dự phòng cho mọi tuyến]
+    wake: "gõ vào phiên Claude: Chạy `python -m tools.agentctl prime --as claude` rồi làm theo hộp thư."
+
+# Loại việc → agent làm chính · dự phòng · người review (khác nhà cung cấp với người làm; `human` = người duyệt).
+routes:
+  coordination: {primary: claude-code, backup: claude, review: human}
+  planning: {primary: claude-code, backup: claude, review: human}
+  backend: {primary: codex, backup: claude, review: claude-code}
+  data: {primary: codex, backup: claude, review: claude-code}
+  research: {primary: codex, backup: claude, review: claude-code}
+  ui-design: {primary: antigravity, backup: claude, review: claude-code}
+  prototype: {primary: antigravity, backup: codex, review: claude-code}
+  frontend: {primary: codex, backup: antigravity, review: claude-code}
+  docs: {primary: claude, backup: claude-code, review: codex}
+  review: {primary: claude-code, backup: codex}
+  release: {primary: claude-code, backup: claude, review: human}

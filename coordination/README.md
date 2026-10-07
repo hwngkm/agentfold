@@ -42,6 +42,9 @@ agent             ──► python -m tools.agentctl release ABC-01
 | `check-work` | kiểm cấu trúc mọi mục trong `docs/work/` |
 | `new log\|decision\|question\|incident\|ticket` | tạo mục công việc thành file riêng |
 | `new handoff --role Rn --title "..."` | bàn giao khi dừng giữa chừng; nhánh, commit cuối, file chưa commit điền sẵn từ git |
+| `team [--route <loại>]` | đội agent: điều phối viên, sở trường, tuyến việc, việc chỉ người làm (`team.yaml`) |
+| `mail assign <ID> --to <agent>` | điều phối viên giao ticket `ready`; thư tự đủ bối cảnh (`docs/AGENT-LOG.md`) |
+| `mail reply <id> --state ...` · `mail pending` | báo trạng thái về người giao · xem ai đang chờ ai |
 
 Tất cả chạy bằng `python -m tools.agentctl <lệnh>`. Mã thoát: 0 ổn · 1 vi phạm · 2 sai cú pháp · 3 môi trường thiếu công cụ.
 
@@ -53,6 +56,9 @@ Tất cả chạy bằng `python -m tools.agentctl <lệnh>`. Mã thoát: 0 ổn
 | `protected` | vùng người sở hữu: cần nhãn duyệt, hoặc ticket duyệt trước bằng `scope.protected` | `docs/design/`, `tests/guards/` |
 | `allow_additions` | trong vùng bảo vệ, THÊM file mới thì không cần duyệt | thêm lưới canh mới, thêm ticket đề xuất |
 | `exclusive` | làn chỉ một ticket giữ tại một thời điểm | `alembic/versions/`, lockfile, `contracts/openapi.json` |
+
+`team.yaml` (cùng vùng bảo vệ, cùng đọc từ nhánh gốc) quyết **ai làm gì**: một điều phối viên, cấp và quyền từng cấp,
+tuyến việc → agent chính/dự phòng/review, việc chỉ người làm. Luật: R70.15.
 
 ## Vì sao sổ claim là một nhánh git mồ côi
 

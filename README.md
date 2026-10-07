@@ -113,6 +113,8 @@ python -m tools.agentctl release API-02            # sau khi merge
 - **Xem bảng việc không cần dòng lệnh:** `python scripts/render_board.py` ghi `board/index.html` — một tệp HTML tự chứa, đọc được ở màn hình hẹp
   và chế độ tối, chỉ đọc; mọi thay đổi vẫn qua PR/ticket.
 - **Người và agent nhắn nhau không cần chép tay:** hộp thư AGENT-LOG nằm trên nhánh git riêng, chỉ cần `git` (`docs/AGENT-LOG.md`).
+- **Đội agent có phân cấp:** `coordination/team.yaml` ghi một điều phối viên, sở trường từng agent, tuyến việc và việc chỉ
+  người làm; điều phối viên giao bằng `mail assign`, agent báo bằng `mail reply`, ai cũng xem `mail pending`.
 - **Bàn giao giữa các phiên:** `python -m tools.agentctl new handoff` điền sẵn từ git; phiên sau đọc rồi làm tiếp.
 - **Prompt khởi động có sẵn** cho phiên cloud, hàng đợi nhiều ticket và phiên local: `docs/PROMPTS.md`.
 
@@ -120,10 +122,12 @@ Vai trò agent trung lập nhà cung cấp nằm ở `coordination/roles/`, mỗ
 
 | Vai trò | Việc | Ghi/sửa? |
 |---|---|---|
+| `coordinator` | giao ticket `ready` theo tuyến, theo dõi việc chờ, review và merge sau CI xanh | merge sau CI xanh |
 | `planner` | đề xuất ticket có phạm vi hẹp | thêm ticket đề xuất |
 | `architect` | cân nhắc phương án cho một câu hỏi thiết kế, soạn ADR `Proposed` | ADR đề xuất |
 | `system-designer` | dựng sơ đồ + bảng cấu trúc (ERD, máy trạng thái, ma trận quyền, DFD…) cho một giai đoạn | đề xuất qua PR |
 | `implementer` | làm ticket trong phạm vi đã duyệt | có, trong scope |
+| `ui-designer` | thiết kế UI/UX, prototype chạy được, đủ trạng thái tải/rỗng/lỗi | có, trong scope |
 | `reviewer` | đọc một PR như người chịu trách nhiệm | không |
 | `critic` | kiểm thứ ĐÃ làm: tự báo cáo, con số không nguồn, lưới chưa từng đỏ | không |
 | `red-team` | tấn công thứ SẮP làm: kịch bản thất bại, pre-mortem, giả định ẩn | không |

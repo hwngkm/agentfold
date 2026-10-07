@@ -10,12 +10,23 @@ import json
 import os
 import sys
 import time
-from dataclasses import asdict
+from dataclasses import asdict, replace
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from tools.agentctl.clock import iso, now
 from tools.agentctl.errors import AgentctlError
-from tools.agentctl.mail import KINDS, PRIORITIES, STATES, TOOLS, AgentCard, Mailbox, Message, new_message
+from tools.agentctl.mail import (
+    KINDS,
+    PRIORITIES,
+    STATES,
+    TERMINAL_STATES,
+    TOOLS,
+    AgentCard,
+    Mailbox,
+    Message,
+    new_message,
+)
 from tools.agentctl.policy import POLICY_PATH, load_policy
 
 
@@ -116,7 +127,108 @@ def handle(repo: Path, args: argparse.Namespace) -> int:
         )
     elif action == "watch":
         return _watch(box, _me(args), args.interval, args.once)
+    elif action == "assign":
+        _assign(repo, box, args)
+    elif action == "reply":
+        _reply(box, args)
+    elif action == "pending":
+        _pending(box, args.to)
     return 0
+
+
+def _assign(repo: Path, box: Mailbox, args: argparse.Namespace) -> None:
+    """Giao một ticket ĐÃ DUYỆT cho một agent trong đội: thư `request` tự đủ bối cảnh, cần xác nhận."""
+    from tools.agentctl.lifecycle import load_context
+    from tools.agentctl.team import assignment_body, load_team
+    from tools.agentctl.tickets import load_ticket, ticket_path
+
+    sender = _me(args)
+    policy, base_ref = load_context(repo, fetch=True)
+    ticket = load_ticket(repo, policy, args.ticket, base_ref)
+    if ticket is None:
+        raise AgentctlError(f"ticket `{args.ticket}` không có trên `{base_ref}` — chỉ giao việc đã được người duyệt")
+    if ticket.state != "ready":
+        raise AgentctlError(
+            f"`{ticket.id}` đang `{ticket.state}` trên `{base_ref}` — chỉ giao ticket `ready`; đặt `ready` là việc của người"
+        )
+    team = load_team(repo, base_ref)
+    role = args.role or ticket.owner_role
+    if team is not None:
+        member = team.member(args.to)
+        role = args.role or member.on_behalf_of
+        if sender != "human" and team.member(sender).rank != "coordinator":
+            raise AgentctlError(
+                f"`{sender}` không phải điều phối viên (`{team.coordinator.id}`) — nhờ việc thì dùng `mail send --kind request`"
+            )
+    path = ticket_path(policy, ticket.id)
+    msg = new_message(
+        sender=sender,
+        to=[args.to],
+        thread=ticket.id,
+        kind="request",
+        subject=f"Giao {ticket.id}: {ticket.title}",
+        body=".",
+        moment=now(),
+        ack_required=True,
+        priority=args.priority,
+        refs=[path],
+    )
+    body = assignment_body(
+        team,
+        ticket,
+        ticket_file=path,
+        sender=sender,
+        recipient=args.to,
+        msg_id=msg.id,
+        role=role,
+        note=args.note or "",
+    )
+    box.send(replace(msg, body=body))
+    print(f"✅ Đã giao {ticket.id} cho `{args.to}`: {msg.id} [{box.mode}]")
+    if team is not None and team.members[args.to].wake:
+        print(f"   Đánh thức: {team.members[args.to].wake}")
+
+
+def _reply(box: Mailbox, args: argparse.Namespace) -> None:
+    """Trả lời đúng người gửi, đúng thread; cập nhật trạng thái yêu cầu; kết thúc thì tự xác nhận thư gốc."""
+    me = _me(args)
+    original = box.get(args.id)
+    updates = [m for m in box.messages() if m.in_reply_to == original.id]
+    moment = now()
+    if updates and updates[-1].created >= iso(moment):
+        # Hai cập nhật cùng một giây thì thứ tự không xác định — trạng thái phải theo đúng thứ tự gửi.
+        moment = datetime.fromisoformat(updates[-1].created.replace("Z", "+00:00")) + timedelta(seconds=1)
+    msg = new_message(
+        sender=me,
+        to=[original.sender],
+        thread=original.thread,
+        kind="status" if args.state else "answer",
+        subject=args.subject or (f"{original.thread}: {args.state}" if args.state else f"Re: {original.subject}"),
+        body=_body(args),
+        moment=moment,
+        state=args.state,
+        in_reply_to=original.id,
+        ack_required=args.ack,
+        refs=args.ref,
+    )
+    box.send(msg)
+    print(f"✅ Đã trả lời {original.id} → `{original.sender}`" + (f" [{args.state}]" if args.state else ""))
+    if args.state in TERMINAL_STATES or (not args.state and original.kind != "request"):
+        box.ack(original.id, me, note=f"trả lời bằng {msg.id}", moment=moment)
+
+
+def _pending(box: Mailbox, recipient: str | None) -> None:
+    """Yêu cầu chưa kết thúc — ai đang chờ ai. Cho điều phối viên và người, ở mọi công cụ."""
+    rows = []
+    for msg in box.messages():
+        if msg.kind != "request" or (recipient and recipient not in msg.to):
+            continue
+        state = box.request_state(msg.id)
+        if state not in TERMINAL_STATES:
+            rows.append(
+                f"{msg.created}  {msg.id}  {msg.sender} → {', '.join(msg.to)}  [{state}] ({msg.thread})\n    {msg.subject}"
+            )
+    print("\n".join(rows) if rows else "✅ Không có yêu cầu nào đang chờ.")
 
 
 def _watch(box: Mailbox, agent: str, interval: int, once: bool) -> int:
@@ -179,6 +291,22 @@ def add_parser(sub: argparse._SubParsersAction) -> None:
     events = actions.add_parser("events", help="đọc nhật ký hoạt động")
     events.add_argument("--agent")
     events.add_argument("--json", action="store_true")
+    assign = with_me(actions.add_parser("assign", help="điều phối viên giao một ticket `ready` cho agent trong đội"))
+    assign.add_argument("ticket")
+    assign.add_argument("--to", required=True, help="định danh agent nhận việc (coordination/team.yaml)")
+    assign.add_argument("--role", help="vai trò người mà agent làm thay (mặc định theo sổ đội)")
+    assign.add_argument("--note", help="ghi chú thêm của người giao")
+    assign.add_argument("--priority", default="normal", choices=PRIORITIES)
+    reply = with_me(actions.add_parser("reply", help="trả lời một thư: đúng người gửi, đúng thread"))
+    reply.add_argument("id")
+    reply.add_argument("--state", choices=STATES, help="cập nhật trạng thái yêu cầu (working, completed, …)")
+    reply.add_argument("--subject")
+    reply.add_argument("--body")
+    reply.add_argument("--body-file", help="đường dẫn tệp, hoặc `-` để đọc stdin")
+    reply.add_argument("--ack", action="store_true", help="người nhận phải xác nhận")
+    reply.add_argument("--ref", nargs="*", default=[], help="commit, file liên quan")
+    pending = actions.add_parser("pending", help="yêu cầu chưa kết thúc: ai đang chờ ai")
+    pending.add_argument("--to", help="chỉ yêu cầu gửi tới agent này")
     watch = with_me(actions.add_parser("watch", help="theo dõi thư mới (hỏi định kỳ)"))
     watch.add_argument("--interval", type=int, default=60, help="giây giữa hai lần hỏi (tối thiểu 15)")
     watch.add_argument("--once", action="store_true")

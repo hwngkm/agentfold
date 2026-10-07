@@ -62,3 +62,28 @@ def test_prime_khong_co_dinh_danh_va_khong_remote_van_chay(tmp_path: Path, git_i
     text = render_prime(repo, agent=None, fetch=True, moment=MOMENT)
     assert "AGENTCTL_AGENT" in text, "nhắc đặt định danh để đọc hộp thư"
     assert "Thiết kế do người chốt là luật." in text
+
+
+def test_prime_cho_biet_vi_tri_trong_doi_va_uu_tien_thu_giao_viec(workspace: Build) -> None:
+    from tests.tools.test_team import TEAM
+
+    ws, seed = workspace({"API-01": ticket_text("API-01", allow=["src/x.py"], title="Thêm đơn hàng")})
+    ws.commit_push(seed, {"AGENTS.md": AGENTS_MD, "coordination/team.yaml": TEAM}, "docs: luật + đội")
+    box = Mailbox(seed, remote="origin", branch="agent-mail")
+    sent = box.send(
+        new_message(
+            sender="boss",
+            to=["coder"],
+            thread="API-01",
+            kind="request",
+            subject="Giao API-01",
+            body=".",
+            moment=MOMENT,
+            ack_required=True,
+        )
+    )
+    text = render_prime(seed, agent="coder", fetch=True, moment=MOMENT)
+    assert "specialist" in text and "báo cáo cho `boss`" in text, "agent biết mình là ai và báo cho ai"
+    assert "đặt ticket `ready`" in text, "nhắc việc chỉ người làm"
+    next_step = text.split("## Bước tiếp theo", 1)[1]
+    assert f"mail read {sent.id}" in next_step, "thư giao việc đi trước mọi việc khác"

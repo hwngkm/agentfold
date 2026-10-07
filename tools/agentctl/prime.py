@@ -90,6 +90,46 @@ def _mail(repo: Path, agent: str | None, fetch: bool) -> list[str]:
     return lines
 
 
+def _team(repo: Path, agent: str | None, fetch: bool) -> list[str]:
+    """Vị trí của phiên này trong đội (`coordination/team.yaml`, đọc từ nhánh gốc khi có)."""
+    from tools.agentctl.lifecycle import load_context
+    from tools.agentctl.team import TEAM_PATH, load_team
+
+    try:
+        _policy, base_ref = load_context(repo, fetch=fetch)
+        team = load_team(repo, base_ref)
+    except AgentctlError:
+        team = load_team(repo, None)
+    if team is None:
+        return [f"(chưa có `{TEAM_PATH}`)"]
+    lines = [
+        f"điều phối viên: `{team.coordinator.id}` — giao việc bằng `mail assign`, xem việc chờ bằng `mail pending`"
+    ]
+    member = team.members.get(agent or "")
+    if member is None:
+        lines.append(f"`{agent}` không có trong sổ đội — chỉ nhận việc qua hộp thư, báo cho `{team.coordinator.id}`")
+    else:
+        lines.append(
+            f"bạn: `{member.id}` · {member.rank} · báo cáo cho `{member.reports_to}` · mạnh: {', '.join(member.strengths)}"
+        )
+        lines += [f"  được: {item}" for item in team.ranks.get(member.rank, ())]
+    lines.append("chỉ người làm: " + "; ".join(team.human_only))
+    return lines
+
+
+def _assigned(repo: Path, agent: str | None, fetch: bool) -> str | None:
+    """Thư yêu cầu chưa xử lý đầu tiên — bước tiếp theo khi có việc được giao cho ticket KHÁC ticket của nhánh này."""
+    if not agent:
+        return None
+    current = ticket_id_from_branch(current_branch(repo))
+    from tools.agentctl.mail_cli import mailbox
+
+    for msg in mailbox(repo, offline=not fetch).inbox(agent):
+        if msg.kind in ("request", "handoff") and msg.ack_required and msg.thread != current:
+            return f"xử lý thư `{msg.subject}` trước: `python -m tools.agentctl mail read {msg.id}` rồi làm theo thư"
+    return None
+
+
 def _handoffs(repo: Path, fetch: bool) -> list[str]:
     from tools.agentctl.board import _open_entries
     from tools.agentctl.lifecycle import load_context
@@ -150,11 +190,16 @@ def render_prime(repo: Path, *, agent: str | None, fetch: bool, moment: datetime
         work, next_step = _work(repo, fetch)
     except (AgentctlError, OSError, ValueError) as exc:
         work, next_step = [f"(không đọc được: {exc})"], "`git log --oneline -10 && git status`, rồi đọc AGENTS.md"
+    try:
+        next_step = _assigned(repo, agent, fetch) or next_step
+    except (AgentctlError, OSError, ValueError):
+        pass
     blocks = [
         ("Luật tối cao (AGENTS.md §2 — đọc đủ file khi chưa đọc)", _safe(lambda: _rules(repo))),
         ("Môi trường", _safe(lambda: _environment(repo))),
         ("Vị trí", _safe(lambda: _position(repo))),
         ("Việc của nhánh này", work),
+        ("Đội agent", _safe(lambda: _team(repo, agent, fetch))),
         ("Hộp thư AGENT-LOG", _safe(lambda: _mail(repo, agent, fetch))),
         ("Bàn giao đang chờ người nhận", _safe(lambda: _handoffs(repo, fetch))),
         ("Kỹ năng", _safe(lambda: _skills(repo))),

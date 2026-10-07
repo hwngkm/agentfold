@@ -62,10 +62,18 @@ Nội dung Markdown. Nêu rõ: cần gì, trước khi nào, bằng chứng/đư
 | Ghi nhật ký | `mail log --event test_run --ticket API-02 --detail "pytest tests/unit -q: 41 passed"` |
 | Đọc nhật ký | `mail events [--agent codex-1]` |
 | Theo dõi liên tục (người, hoặc agent chạy được lệnh nền) | `mail watch --interval 60` |
+| Điều phối viên giao một ticket `ready` (thư tự đủ bối cảnh) | `mail assign API-02 --to codex --note "..."` |
+| Trả lời đúng người gửi, đúng thread, cập nhật trạng thái | `mail reply <id> --state working\|completed\|input-required ...` |
+| Yêu cầu chưa kết thúc — ai đang chờ ai | `mail pending [--to codex]` |
+| Đội agent, tuyến việc, việc chỉ người làm | `python -m tools.agentctl team [--route ui]` (`coordination/team.yaml`) |
 
 Thêm `--json` vào `inbox`, `read`, `thread`, `events` để máy đọc.
 
 ## 4. Nhịp làm việc — để không ai phải chép tay lời nhắn
+
+**Đội có phân cấp** (`coordination/team.yaml`, R70.15): điều phối viên giao bằng `mail assign`, đánh thức agent bằng
+câu `wake` ngắn và cố định; agent báo bằng `mail reply`; mọi bên xem `mail pending`. Prompt dài không đi qua cửa sổ
+chat nữa — nó nằm trong thư, có lịch sử, ai cũng đọc lại được.
 
 **Agent (mọi công cụ):**
 1. Đầu phiên: `mail inbox` (cùng với `git log`, `board` — AGENTS.md §1). Thư `ack_required` phải xử lý hoặc trả lời
